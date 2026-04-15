@@ -1,0 +1,26 @@
+env:
+  n_envs: 8
+  frame_stack: 4
+  obs_size: 84
+
+training:
+  total_timesteps: 5_000_000
+  rollout_steps: 128
+  n_epochs: 4
+  minibatch_size: 256
+  lr: 3.0e-4
+  lr_schedule: linear
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_eps: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.01
+  max_grad_norm: 0.5
+  target_kl: 0.015
+
+logging:
+  eval_interval: 50_000
+  eval_episodes: 10
+  checkpoint_interval: 100_000
+  wandb_project: carracing-ppo
+  gif_interval: 500_000
