@@ -1,0 +1,12 @@
+checkpoints/
+runs/
+logs/
+wandb/
+__pycache__/
+*.pt
+*.pyc
+.env
+assets/*.mp4
+*.egg-info/
+dist/
+.DS_Store
