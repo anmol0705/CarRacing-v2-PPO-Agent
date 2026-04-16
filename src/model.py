@@ -12,8 +12,13 @@ class ActorCritic(nn.Module):
     Architecture:
         Conv2d(4,32,8,4) -> ReLU -> Conv2d(32,64,4,2) -> ReLU ->
         Conv2d(64,64,3,1) -> ReLU -> Flatten -> Linear(64*7*7, 512) -> ReLU
-        -> mu_head (Linear 512->3, tanh) + log_std (learnable param)
+        -> mu_head (Linear 512->3) + log_std (learnable param)
         -> value_head (Linear 512->1)
+
+    Action mapping:
+        action[0] (steer):  tanh    -> [-1, 1]
+        action[1] (gas):    sigmoid -> [0, 1]
+        action[2] (brake):  sigmoid -> [0, 1]
     """
 
     def __init__(self) -> None:
@@ -49,6 +54,16 @@ class ActorCritic(nn.Module):
         nn.init.orthogonal_(self.value_head.weight, gain=1.0)
         nn.init.zeros_(self.value_head.bias)
 
+    def _squash_actions(self, raw: torch.Tensor) -> torch.Tensor:
+        """Map raw network output to valid action ranges.
+
+        steer: tanh -> [-1, 1], gas: sigmoid -> [0, 1], brake: sigmoid -> [0, 1]
+        """
+        steer = torch.tanh(raw[:, 0:1])
+        gas = torch.sigmoid(raw[:, 1:2])
+        brake = torch.sigmoid(raw[:, 2:3])
+        return torch.cat([steer, gas, brake], dim=1)
+
     def forward(
         self, obs: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -58,18 +73,24 @@ class ActorCritic(nn.Module):
             obs: Observation tensor of shape (batch, 4, 84, 84).
 
         Returns:
-            action: Sampled action clamped to [-1, 1], shape (batch, 3).
+            action: Sampled action, shape (batch, 3).
             log_prob: Log probability of action, shape (batch,).
             value: State value estimate, shape (batch, 1).
             entropy: Distribution entropy, shape (batch,).
         """
         features = self.cnn(obs)
 
-        mu = torch.tanh(self.mu_head(features))
-        std = self.log_std.clamp(-2, 2).exp()
+        mu = self._squash_actions(self.mu_head(features))
+        std = self.log_std.clamp(-2, 0.5).exp()
         dist = Normal(mu, std)
 
-        action = dist.sample().clamp(-1, 1)
+        action = dist.sample()
+        # Clamp to valid ranges: steer [-1,1], gas [0,1], brake [0,1]
+        action = torch.cat([
+            action[:, 0:1].clamp(-1, 1),
+            action[:, 1:2].clamp(0, 1),
+            action[:, 2:3].clamp(0, 1),
+        ], dim=1)
         log_prob = dist.log_prob(action).sum(dim=-1)
         entropy = dist.entropy().sum(dim=-1)
 
@@ -94,8 +115,8 @@ class ActorCritic(nn.Module):
         """
         features = self.cnn(obs)
 
-        mu = torch.tanh(self.mu_head(features))
-        std = self.log_std.clamp(-2, 2).exp()
+        mu = self._squash_actions(self.mu_head(features))
+        std = self.log_std.clamp(-2, 0.5).exp()
         dist = Normal(mu, std)
 
         log_prob = dist.log_prob(actions).sum(dim=-1)
@@ -107,4 +128,4 @@ class ActorCritic(nn.Module):
     def get_greedy_action(self, obs: torch.Tensor) -> torch.Tensor:
         """Return deterministic (mean) action for evaluation."""
         features = self.cnn(obs)
-        return torch.tanh(self.mu_head(features))
+        return self._squash_actions(self.mu_head(features))

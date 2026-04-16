@@ -15,6 +15,32 @@ from src.model import ActorCritic
 from src.ppo import compute_gae, ppo_update
 
 
+class RunningMeanStd:
+    """Tracks running mean and variance for reward normalization."""
+
+    def __init__(self) -> None:
+        self.mean = 0.0
+        self.var = 1.0
+        self.count = 1e-4
+
+    def update(self, x: np.ndarray) -> None:
+        batch_mean = np.mean(x)
+        batch_var = np.var(x)
+        batch_count = x.shape[0]
+
+        delta = batch_mean - self.mean
+        total_count = self.count + batch_count
+        self.mean += delta * batch_count / total_count
+        m_a = self.var * self.count
+        m_b = batch_var * batch_count
+        m2 = m_a + m_b + delta**2 * self.count * batch_count / total_count
+        self.var = m2 / total_count
+        self.count = total_count
+
+    def normalize(self, x: np.ndarray) -> np.ndarray:
+        return x / (np.sqrt(self.var) + 1e-8)
+
+
 class PPOTrainer:
     """Orchestrates PPO training: rollouts, updates, logging, checkpoints."""
 
@@ -45,6 +71,9 @@ class PPOTrainer:
         self.done_buf = torch.zeros(n_steps, n_envs, device=self.device)
         self.val_buf = torch.zeros(n_steps, n_envs, device=self.device)
 
+        # Reward normalization
+        self.reward_rms = RunningMeanStd()
+
         # Tracking
         self.global_step = 0
         self.ep_rewards: list[float] = []
@@ -55,10 +84,10 @@ class PPOTrainer:
         Path("assets").mkdir(exist_ok=True)
 
     def _linear_lr(self) -> float:
-        """Compute linearly decaying learning rate."""
+        """Compute linearly decaying learning rate (never goes below 10% of initial)."""
         total = self.cfg.training.total_timesteps
         frac = 1.0 - self.global_step / total
-        return max(frac * self.cfg.training.lr, 0.0)
+        return max(frac * self.cfg.training.lr, self.cfg.training.lr * 0.1)
 
     def _update_lr(self) -> float:
         """Apply linear LR schedule to optimizer."""
@@ -77,7 +106,6 @@ class PPOTrainer:
             Next observation after rollout.
         """
         n_steps = self.cfg.training.rollout_steps
-        n_envs = self.cfg.env.n_envs
 
         for step in range(n_steps):
             obs_t = torch.as_tensor(
@@ -91,10 +119,16 @@ class PPOTrainer:
             next_obs, reward, terminated, truncated, infos = self.envs.step(action_np)
             done = np.logical_or(terminated, truncated)
 
+            # Normalize rewards
+            self.reward_rms.update(reward)
+            reward_norm = self.reward_rms.normalize(reward)
+
             self.obs_buf[step] = obs_t
             self.act_buf[step] = action
             self.logp_buf[step] = log_prob
-            self.rew_buf[step] = torch.as_tensor(reward, device=self.device)
+            self.rew_buf[step] = torch.as_tensor(
+                reward_norm, dtype=torch.float32, device=self.device
+            )
             self.done_buf[step] = torch.as_tensor(
                 done, dtype=torch.float32, device=self.device
             )
@@ -110,7 +144,7 @@ class PPOTrainer:
                         self.ep_lengths.append(ep_l)
 
             obs = next_obs
-            self.global_step += n_envs
+            self.global_step += self.cfg.env.n_envs
 
         return obs
 
@@ -123,7 +157,7 @@ class PPOTrainer:
         batch_size = n_envs * n_steps
 
         # Initialize W&B
-        run = wandb.init(
+        wandb.init(
             project=cfg.logging.wandb_project,
             config=dict(cfg),
             save_code=False,
@@ -135,6 +169,7 @@ class PPOTrainer:
         next_eval_step = cfg.logging.eval_interval
         next_ckpt_step = cfg.logging.checkpoint_interval
         next_gif_step = cfg.logging.gif_interval
+        best_eval_reward = -float("inf")
 
         print(f"Starting training: {total_timesteps} steps, {n_envs} envs")
         print(f"Batch size: {batch_size}, minibatch: {cfg.training.minibatch_size}")
@@ -163,6 +198,7 @@ class PPOTrainer:
             flat_obs = self.obs_buf.reshape(-1, 4, 84, 84)
             flat_act = self.act_buf.reshape(-1, 3)
             flat_logp = self.logp_buf.reshape(-1)
+            flat_val = self.val_buf.reshape(-1)
             flat_adv = advantages.reshape(-1)
             flat_ret = returns.reshape(-1)
 
@@ -173,6 +209,7 @@ class PPOTrainer:
                 obs=flat_obs,
                 actions=flat_act,
                 old_log_probs=flat_logp,
+                old_values=flat_val,
                 advantages=flat_adv,
                 returns=flat_ret,
                 clip_eps=cfg.training.clip_eps,
@@ -194,6 +231,7 @@ class PPOTrainer:
                 "train/value_loss": metrics["value_loss"],
                 "train/entropy": metrics["entropy"],
                 "train/approx_kl": metrics["approx_kl"],
+                "train/clip_frac": metrics["clip_frac"],
                 "train/lr": lr,
                 "train/sps": sps,
             }
@@ -208,6 +246,7 @@ class PPOTrainer:
                     f"Value: {metrics['value_loss']:.4f} | "
                     f"Ent: {metrics['entropy']:.4f} | "
                     f"KL: {metrics['approx_kl']:.4f} | "
+                    f"Clip: {metrics['clip_frac']:.3f} | "
                     f"LR: {lr:.6f} | "
                     f"SPS: {sps:.0f}"
                 )
@@ -232,6 +271,21 @@ class PPOTrainer:
                     step=self.global_step,
                 )
                 print(f"  EVAL @ {self.global_step}: {mean_r:.1f} +/- {std_r:.1f}")
+
+                # Save best model
+                if mean_r > best_eval_reward:
+                    best_eval_reward = mean_r
+                    torch.save(
+                        {
+                            "model_state_dict": self.model.state_dict(),
+                            "optimizer_state_dict": self.optimizer.state_dict(),
+                            "global_step": self.global_step,
+                            "eval_reward": mean_r,
+                        },
+                        "checkpoints/model_best.pt",
+                    )
+                    print(f"  New best model! Reward: {mean_r:.1f}")
+
                 next_eval_step += cfg.logging.eval_interval
                 if record:
                     next_gif_step += cfg.logging.gif_interval
@@ -260,6 +314,7 @@ class PPOTrainer:
             "checkpoints/model_final.pt",
         )
         print(f"Training complete: {self.global_step} steps in {elapsed:.0f}s")
+        print(f"Best eval reward: {best_eval_reward:.1f}")
 
         self.envs.close()
         wandb.finish()

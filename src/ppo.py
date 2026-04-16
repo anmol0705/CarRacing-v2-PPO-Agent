@@ -53,6 +53,7 @@ def ppo_update(
     obs: torch.Tensor,
     actions: torch.Tensor,
     old_log_probs: torch.Tensor,
+    old_values: torch.Tensor,
     advantages: torch.Tensor,
     returns: torch.Tensor,
     clip_eps: float,
@@ -71,6 +72,7 @@ def ppo_update(
         obs: Flattened observations, shape (N, 4, 84, 84).
         actions: Flattened actions, shape (N, 3).
         old_log_probs: Flattened old log probs, shape (N,).
+        old_values: Flattened old value predictions, shape (N,).
         advantages: Flattened advantages, shape (N,).
         returns: Flattened returns, shape (N,).
         clip_eps: PPO clipping epsilon.
@@ -93,6 +95,7 @@ def ppo_update(
     total_value_loss = 0.0
     total_entropy = 0.0
     total_approx_kl = 0.0
+    total_clip_frac = 0.0
     n_updates = 0
     early_stopped = False
 
@@ -107,12 +110,14 @@ def ppo_update(
             mb_obs = obs[mb_idx]
             mb_actions = actions[mb_idx]
             mb_old_log_probs = old_log_probs[mb_idx]
+            mb_old_values = old_values[mb_idx]
             mb_advantages = advantages[mb_idx]
             mb_returns = returns[mb_idx]
 
             new_log_probs, values, entropy = model.evaluate_actions(
                 mb_obs, mb_actions
             )
+            values = values.squeeze(-1)
 
             # Policy loss with clipping
             ratio = (new_log_probs - mb_old_log_probs).exp()
@@ -120,8 +125,13 @@ def ppo_update(
             surr2 = ratio.clamp(1 - clip_eps, 1 + clip_eps) * mb_advantages
             policy_loss = -torch.min(surr1, surr2).mean()
 
-            # Value loss
-            value_loss = F.mse_loss(values.squeeze(-1), mb_returns)
+            # Value loss with clipping
+            values_clipped = mb_old_values + (values - mb_old_values).clamp(
+                -clip_eps, clip_eps
+            )
+            v_loss_unclipped = (values - mb_returns).pow(2)
+            v_loss_clipped = (values_clipped - mb_returns).pow(2)
+            value_loss = 0.5 * torch.max(v_loss_unclipped, v_loss_clipped).mean()
 
             # Total loss
             loss = policy_loss + vf_coef * value_loss - ent_coef * entropy.mean()
@@ -133,16 +143,19 @@ def ppo_update(
 
             # Track metrics
             with torch.no_grad():
-                approx_kl = (mb_old_log_probs - new_log_probs).mean().item()
+                log_ratio = new_log_probs - mb_old_log_probs
+                approx_kl = ((ratio - 1) - log_ratio).mean().item()
+                clip_frac = ((ratio - 1.0).abs() > clip_eps).float().mean().item()
 
             total_policy_loss += policy_loss.item()
             total_value_loss += value_loss.item()
             total_entropy += entropy.mean().item()
             total_approx_kl += approx_kl
+            total_clip_frac += clip_frac
             n_updates += 1
 
-        # Early stopping on KL divergence
-        if abs(total_approx_kl / max(n_updates, 1)) > target_kl:
+        # Early stopping on KL divergence (check after each full epoch)
+        if total_approx_kl / max(n_updates, 1) > target_kl:
             early_stopped = True
             break
 
@@ -152,5 +165,6 @@ def ppo_update(
         "value_loss": total_value_loss / n_updates,
         "entropy": total_entropy / n_updates,
         "approx_kl": total_approx_kl / n_updates,
+        "clip_frac": total_clip_frac / n_updates,
         "early_stopped": float(early_stopped),
     }
