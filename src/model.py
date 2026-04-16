@@ -82,7 +82,7 @@ class ActorCritic(nn.Module):
         features = self.cnn(obs)
 
         mu = self._get_mu(features)
-        std = self.log_std.clamp(-3, -0.5).exp()
+        std = self.log_std.clamp(-3, 0).exp()
         dist = Normal(mu, std)
 
         action = dist.sample()
@@ -112,7 +112,7 @@ class ActorCritic(nn.Module):
         features = self.cnn(obs)
 
         mu = self._get_mu(features)
-        std = self.log_std.clamp(-3, -0.5).exp()
+        std = self.log_std.clamp(-3, 0).exp()
         dist = Normal(mu, std)
 
         log_prob = dist.log_prob(actions).sum(dim=-1)
