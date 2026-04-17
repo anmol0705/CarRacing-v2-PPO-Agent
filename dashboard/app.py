@@ -1,7 +1,9 @@
-"""Streamlit dashboard for CarRacing PPO agent — demo, training curves, architecture."""
+"""Streamlit dashboard for CarRacing PPO agent — demo, training curves, architecture.
 
-import glob
-import sys
+This dashboard is designed to run on Streamlit Community Cloud without
+gymnasium, torch, or pygame — it uses only prerecorded GIFs and CSV metrics.
+"""
+
 import os
 from pathlib import Path
 
@@ -9,8 +11,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-# Ensure project root on path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+# Resolve asset paths relative to this file (works both locally and on Streamlit Cloud)
+ROOT = Path(__file__).resolve().parent.parent
+ASSETS = ROOT / "assets"
 
 st.set_page_config(
     page_title="CarRacing PPO Agent",
@@ -79,8 +82,8 @@ with m4:
 st.divider()
 
 # ---- Tabs ----
-tab_demo, tab_training, tab_arch, tab_run = st.tabs([
-    "Agent Demo", "Training Curves", "Architecture", "Run Episode",
+tab_demo, tab_training, tab_arch, tab_about = st.tabs([
+    "Agent Demo", "Training Curves", "Architecture", "About",
 ])
 
 
@@ -88,11 +91,11 @@ tab_demo, tab_training, tab_arch, tab_run = st.tabs([
 with tab_demo:
     col_gif, col_info = st.columns([2, 1])
     with col_gif:
-        best_gif = Path("assets/best_agent.gif")
+        best_gif = ASSETS / "best_agent.gif"
         if best_gif.exists():
-            st.image(str(best_gif), caption="Best episode: 928 reward (full lap)")
+            st.image(str(best_gif), caption="Best episode: 928 reward (full lap completion)")
         else:
-            st.warning("assets/best_agent.gif not found. Run scripts/record_final_assets.py")
+            st.warning("best_agent.gif not found — run scripts/record_final_assets.py locally")
 
     with col_info:
         st.markdown("### Performance Summary")
@@ -115,15 +118,26 @@ with tab_demo:
         )
 
     st.markdown("### Training Progression")
-    prog_gif = Path("assets/progression.gif")
+    prog_gif = ASSETS / "progression.gif"
     if prog_gif.exists():
         st.image(str(prog_gif), caption="250K → 1M → 2.5M → 4M → 4.9M steps")
+
+    st.markdown("### Before vs After")
+    col_before, col_after = st.columns(2)
+    with col_before:
+        early_gif = ASSETS / "ep_0pct.gif"
+        if early_gif.exists():
+            st.image(str(early_gif), caption="Early training (~1M steps)")
+    with col_after:
+        late_gif = ASSETS / "ep_100pct.gif"
+        if late_gif.exists():
+            st.image(str(late_gif), caption="Fully trained (best checkpoint)")
 
 
 # ==== TAB 2: TRAINING CURVES ====
 with tab_training:
-    eval_csv = Path("assets/eval_metrics.csv")
-    train_csv = Path("assets/training_metrics.csv")
+    eval_csv = ASSETS / "eval_metrics.csv"
+    train_csv = ASSETS / "training_metrics.csv"
 
     if eval_csv.exists() and train_csv.exists():
         eval_df = pd.read_csv(eval_csv)
@@ -142,10 +156,10 @@ with tab_training:
         best_row = eval_df.iloc[best_idx]
         st.success(
             f"Best checkpoint: step {int(best_row['step']):,} — "
-            f"eval reward {best_row['eval_reward']:.1f} ± {best_row['eval_std']:.1f}"
+            f"eval reward {best_row['eval_reward']:.1f} +/- {best_row['eval_std']:.1f}"
         )
 
-        # Two columns for entropy and policy loss
+        # Two columns for entropy and training reward
         col_ent, col_pol = st.columns(2)
 
         with col_ent:
@@ -183,7 +197,7 @@ with tab_training:
 
     else:
         st.warning(
-            "Training metrics not found. Run `python scripts/export_metrics.py` "
+            "Training metrics not found. Run `python scripts/export_metrics.py` locally "
             "to generate assets/training_metrics.csv and assets/eval_metrics.csv"
         )
 
@@ -198,30 +212,30 @@ with tab_arch:
 Observation: 4 stacked grayscale frames (4 x 84 x 84)
                       |
                       v
-┌───────────────────────────────────────────┐
-│           Shared CNN Backbone             │
-│                                           │
-│  Conv2d(4→32, 8x8, stride 4)  → ReLU     │
-│  Conv2d(32→64, 4x4, stride 2) → ReLU     │
-│  Conv2d(64→64, 3x3, stride 1) → ReLU     │
-│  Flatten → Linear(3136→512)    → ReLU     │
-└──────────────┬──────────────┬─────────────┘
++-----------------------------------------+
+|          Shared CNN Backbone            |
+|                                         |
+|  Conv2d(4->32, 8x8, stride 4)  -> ReLU |
+|  Conv2d(32->64, 4x4, stride 2) -> ReLU |
+|  Conv2d(64->64, 3x3, stride 1) -> ReLU |
+|  Flatten -> Linear(3136->512)   -> ReLU |
++--------------+--------------+-----------+
                |              |
-        ┌──────┘              └──────┐
+        +------+              +------+
         v                            v
-┌───────────────┐           ┌────────────────┐
-│  Actor Head   │           │  Critic Head   │
-│               │           │                │
-│ Linear(512→3) │           │ Linear(512→1)  │
-│ + tanh scale  │           │ → V(s)         │
-│ + learned std │           └────────────────┘
-│ → Normal dist │
-│ → [steer,     │
-│    gas, brake] │
-└───────────────┘
++---------------+           +----------------+
+|  Actor Head   |           |  Critic Head   |
+|               |           |                |
+| Linear(512->3)|           | Linear(512->1) |
+| + tanh scale  |           | -> V(s)        |
+| + learned std |           +----------------+
+| -> Normal dist|
+| -> [steer,    |
+|    gas, brake]|
++---------------+
 
 Total parameters: 1,686,183
-        """)
+        """, language=None)
 
         st.markdown("### Layer Details")
         st.dataframe(
@@ -267,99 +281,65 @@ Total parameters: 1,686,183
         """)
 
 
-# ==== TAB 4: RUN EPISODE ====
-with tab_run:
-    st.markdown("### Run a Live Episode")
+# ==== TAB 4: ABOUT ====
+with tab_about:
+    st.markdown("### About This Project")
+    st.markdown("""
+This is a **from-scratch implementation** of Proximal Policy Optimization (PPO)
+that learns to drive in OpenAI Gymnasium's CarRacing-v2 environment from raw pixels.
 
-    checkpoint_files = sorted(glob.glob("checkpoints/*.pt"))
-    if not checkpoint_files:
-        st.warning("No checkpoints found in checkpoints/")
-    else:
-        col_ctrl, col_space = st.columns([1, 2])
-        with col_ctrl:
-            selected_ckpt = st.selectbox("Checkpoint", checkpoint_files, index=len(checkpoint_files) - 1)
-            seed = st.number_input("Environment seed", value=0, min_value=0, max_value=9999)
-            run_episode = st.button("Run Episode", type="primary")
+**No pretrained models. No Stable-Baselines3.** Every line of the algorithm — GAE,
+clipped surrogate objective, entropy bonus, reward normalization — is hand-written
+in PyTorch.
 
-        if run_episode:
-            import time
-            import torch
-            from src.model import ActorCritic
-            from src.env_utils import make_env
+#### Training Journey
 
-            @st.cache_resource
-            def load_model(ckpt_path):
-                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-                model = ActorCritic().to(device)
-                ckpt = torch.load(ckpt_path, map_location=device, weights_only=True)
-                model.load_state_dict(ckpt["model_state_dict"])
-                model.eval()
-                return model
+The agent trained for **5 million steps** (~9.6 hours on an NVIDIA T4 GPU) across
+8 parallel environments. The learning curve shows a characteristic hockey-stick
+pattern:
 
-            model = load_model(selected_ckpt)
-            device = next(model.parameters()).device
+- **0-2M steps:** Slow improvement while learning basic track-following
+- **2-4M steps:** Rapid improvement as steering + throttle + braking combine
+- **4-5M steps:** Fine-tuning to near-human performance (median 865)
 
-            env_fn = make_env(seed=int(seed), render_mode="rgb_array")
-            env = env_fn()
-            obs, _ = env.reset()
-            done = False
-            total_reward = 0.0
-            step_count = 0
-            rewards_over_time = []
+#### Bugs I Fixed
 
-            col_main, col_actions = st.columns([3, 1])
-            frame_placeholder = col_main.empty()
-            steer_text = col_actions.empty()
-            gas_text = col_actions.empty()
-            brake_text = col_actions.empty()
-            reward_text = col_actions.empty()
-            step_text = col_actions.empty()
-            chart_placeholder = st.empty()
+| Bug | Fix |
+|:----|:----|
+| Action gradient saturation | Centered tanh scaling + small init gain |
+| log_std stuck at clamp boundary | Widened range, init in middle |
+| Value loss instability | Removed value clipping |
+| Over-optimization per rollout | Reduced epochs from 10 to 4 |
+| box2d Python 3.13 crash | Custom Float64Action wrapper |
 
-            while not done:
-                obs_tensor = torch.as_tensor(
-                    np.array(obs), dtype=torch.float32, device=device
-                ).unsqueeze(0)
+#### Built With
 
-                with torch.no_grad():
-                    action = model.get_greedy_action(obs_tensor)
-                action_np = action.cpu().numpy().squeeze(0)
+**PyTorch** · **Gymnasium** · **Hydra** · **Weights & Biases** · **Streamlit**
+    """)
 
-                obs, reward, terminated, truncated, info = env.step(action_np)
-                done = terminated or truncated
-                total_reward += float(reward)
-                step_count += 1
-                rewards_over_time.append(total_reward)
+    st.markdown("### Run It Yourself")
+    st.code("""
+# Clone and install
+git clone https://github.com/anmol0705/CarRacing-v2-PPO-Agent.git
+cd CarRacing-v2-PPO-Agent
+pip install -r requirements.txt gymnasium[box2d] torch
 
-                frame = env.render()
-                if frame is not None:
-                    frame_placeholder.image(frame, channels="RGB", use_container_width=True)
+# Train (~10 hours on T4 GPU)
+python scripts/train.py
 
-                steer_text.metric("Steer", f"{action_np[0]:+.2f}")
-                gas_text.metric("Gas", f"{action_np[1]:.2f}")
-                brake_text.metric("Brake", f"{action_np[2]:.2f}")
-                reward_text.metric("Total Reward", f"{total_reward:.1f}")
-                step_text.metric("Step", str(step_count))
+# Evaluate
+python scripts/eval_detailed.py
 
-                time.sleep(1.0 / 20.0)
-
-            env.close()
-
-            st.subheader("Cumulative Reward")
-            st.line_chart(pd.DataFrame({"Reward": rewards_over_time}))
-            if total_reward > 700:
-                st.success(f"Episode complete: {total_reward:.1f} reward in {step_count} steps")
-            else:
-                st.info(f"Episode complete: {total_reward:.1f} reward in {step_count} steps")
-        else:
-            st.info("Select a checkpoint and click 'Run Episode' to watch the agent drive in real time.")
+# Record GIFs
+python scripts/record_hero.py
+    """, language="bash")
 
 
 # ---- Footer ----
 st.divider()
 st.markdown(
     '<p style="text-align:center; color:#546e7a; font-size:0.85em;">'
-    'Built from scratch with PyTorch &middot; No Stable-Baselines3 &middot; '
+    'Built from scratch with PyTorch · No Stable-Baselines3 · '
     '<a href="https://github.com/anmol0705/CarRacing-v2-PPO-Agent" '
     'style="color:#64b5f6;">GitHub</a></p>',
     unsafe_allow_html=True,
