@@ -34,7 +34,7 @@ class ActorCritic(nn.Module):
         )
 
         self.mu_head = nn.Linear(512, 3)
-        self.log_std = nn.Parameter(torch.zeros(3))
+        self.log_std = nn.Parameter(torch.full((3,), -1.0))
         self.value_head = nn.Linear(512, 1)
 
         # Action space: steer [-1,1], gas [0,1], brake [0,1]
@@ -82,7 +82,7 @@ class ActorCritic(nn.Module):
         features = self.cnn(obs)
 
         mu = self._get_mu(features)
-        std = self.log_std.clamp(-3, 0).exp()
+        std = self.log_std.clamp(-2.5, 0.5).exp()
         dist = Normal(mu, std)
 
         action = dist.sample()
@@ -112,7 +112,7 @@ class ActorCritic(nn.Module):
         features = self.cnn(obs)
 
         mu = self._get_mu(features)
-        std = self.log_std.clamp(-3, 0).exp()
+        std = self.log_std.clamp(-2.5, 0.5).exp()
         dist = Normal(mu, std)
 
         log_prob = dist.log_prob(actions).sum(dim=-1)

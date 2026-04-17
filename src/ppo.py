@@ -110,7 +110,6 @@ def ppo_update(
             mb_obs = obs[mb_idx]
             mb_actions = actions[mb_idx]
             mb_old_log_probs = old_log_probs[mb_idx]
-            mb_old_values = old_values[mb_idx]
             mb_advantages = advantages[mb_idx]
             mb_returns = returns[mb_idx]
 
@@ -125,13 +124,8 @@ def ppo_update(
             surr2 = ratio.clamp(1 - clip_eps, 1 + clip_eps) * mb_advantages
             policy_loss = -torch.min(surr1, surr2).mean()
 
-            # Value loss with clipping
-            values_clipped = mb_old_values + (values - mb_old_values).clamp(
-                -clip_eps, clip_eps
-            )
-            v_loss_unclipped = (values - mb_returns).pow(2)
-            v_loss_clipped = (values_clipped - mb_returns).pow(2)
-            value_loss = 0.5 * torch.max(v_loss_unclipped, v_loss_clipped).mean()
+            # Value loss (unclipped MSE — simpler and often better)
+            value_loss = 0.5 * (values - mb_returns).pow(2).mean()
 
             # Total loss
             loss = policy_loss + vf_coef * value_loss - ent_coef * entropy.mean()
