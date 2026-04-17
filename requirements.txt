@@ -1,13 +1,11 @@
 gymnasium[box2d]==0.29.1
 torch>=2.0.0
-torchvision
 numpy
 wandb
 imageio
 imageio-ffmpeg
 streamlit
-hydra-core
-omegaconf
-opencv-python
-tqdm
-black
+hydra-core>=1.3.0
+omegaconf>=2.3.0
+Pillow
+pandas
