@@ -360,7 +360,7 @@ st.divider()
 st.markdown(
     '<p style="text-align:center; color:#546e7a; font-size:0.85em;">'
     'Built from scratch with PyTorch &middot; No Stable-Baselines3 &middot; '
-    '<a href="https://github.com/YOUR_USERNAME/carracing-ppo" '
+    '<a href="https://github.com/anmol0705/CarRacing-v2-PPO-Agent" '
     'style="color:#64b5f6;">GitHub</a></p>',
     unsafe_allow_html=True,
 )

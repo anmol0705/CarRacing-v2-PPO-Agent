@@ -110,7 +110,7 @@ All hyperparameters live in [`configs/default.yaml`](configs/default.yaml) — n
 ### Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/carracing-ppo.git
+git clone https://github.com/anmol0705/CarRacing-v2-PPO-Agent.git
 cd carracing-ppo
 pip install -r requirements.txt
 ```
