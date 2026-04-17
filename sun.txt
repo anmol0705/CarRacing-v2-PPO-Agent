@@ -1,7 +1,7 @@
 ============================================================
 PROJECT COMPLETE — RESUME BULLET (copy this):
 
-• Trained a PPO agent from raw pixels to drive in OpenAI
+  Trained a PPO agent from raw pixels to drive in OpenAI
   CarRacing-v2, implementing CNN feature extraction, GAE
   advantage estimation, and Gaussian policy from scratch
   in PyTorch. Achieved median eval reward of 864.7 over
@@ -20,11 +20,28 @@ INTERVIEW TALKING POINTS:
 8. Result? — Median 864.7/1000, mean 632 (high variance from occasional crashes on hard tracks)
 
 ============================================================
+STREAMLIT CLOUD FIX (what was done):
+============================================================
+
+The error was: pygame couldn't build on Streamlit Cloud because
+SDL2 dev libraries aren't available (even with packages.txt).
+
+Fix applied:
+  - Removed gymnasium, torch, pygame from requirements.txt
+  - Dashboard now uses ONLY prerecorded GIFs + CSV metrics
+  - No heavy ML dependencies needed at runtime
+  - Removed packages.txt entirely (no system deps)
+  - Replaced "Run Episode" tab with "About" tab
+
+The app should now deploy cleanly. Go to your Streamlit Cloud
+dashboard and click Reboot, or it will auto-redeploy from the push.
+
+============================================================
 DEPLOY STREAMLIT INSTRUCTIONS:
 ============================================================
 
 1. Go to share.streamlit.io
-2. Click "New app"
+2. Click "New app" (or reboot existing one)
 3. Repository: anmol0705/CarRacing-v2-PPO-Agent
 4. Branch: main
 5. Main file: dashboard/app.py
@@ -43,25 +60,6 @@ PROJECT STATUS:
 
 GitHub:  https://github.com/anmol0705/CarRacing-v2-PPO-Agent
 Tag:     v1.0
-Status:  ALL PUSHED TO GITHUB (main branch + v1.0 tag)
-
-What was done:
-  - Best checkpoint verified: step 4,900,864, eval reward 811.9
-  - Hero GIF recorded: 928.4 reward full lap (assets/best_agent.gif)
-  - Progression GIF: 250K -> 1M -> 2.5M -> 4M -> 4.9M with overlays
-  - Demo clip: 10-second highlight (assets/demo_clip.gif)
-  - Professional README with results, architecture, training journey
-  - Polished Streamlit dashboard (4 tabs: demo, curves, arch, live run)
-  - Training metrics exported to CSV (self-contained, no W&B needed)
-  - Streamlit Community Cloud config (.streamlit/config.toml)
-  - packages.txt for system deps (swig)
-  - Everything committed and pushed to GitHub
-
-What YOU still need to do:
-  1. Deploy Streamlit app (instructions above)
-  2. Sync W&B offline run (instructions above)
-  3. (Optional) Set git identity:
-       git config user.name "Anmol"
-       git config user.email "your@email.com"
+Status:  ALL PUSHED TO GITHUB
 
 ============================================================
