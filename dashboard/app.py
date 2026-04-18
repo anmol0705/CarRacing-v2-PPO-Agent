@@ -1,504 +1,862 @@
-"""Streamlit dashboard for CarRacing PPO agent — display-only, no gymnasium/torch deps.
+"""CarRacing-v2 PPO Agent — Professional Dashboard.
 
-Shows prerecorded GIFs, training curves from CSV, architecture details, and project info.
-Imports: streamlit, pandas, plotly, PIL, pathlib, base64 only.
+Display-only: no gymnasium, no torch, no pygame imports.
 """
 
 import base64
+import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from PIL import Image
 
 st.set_page_config(
     page_title="CarRacing-v2 PPO Agent",
-    page_icon="\U0001f3ce\ufe0f",
+    page_icon="\U0001f3ce",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
+# ── Global CSS ──────────────────────────────────────────────────────────────
+
 st.markdown(
     """
 <style>
-.block-container{padding-top:1.5rem;padding-bottom:2rem;max-width:1080px}
-.mcard{background:#161616;border:1px solid #2a2a2a;border-radius:10px;
-       padding:1rem 1.2rem;text-align:center}
-.mv{font-size:2rem;font-weight:600;color:#3B8BD4;margin:0}
-.ml{font-size:.72rem;color:#666;text-transform:uppercase;letter-spacing:.07em}
-.ms{font-size:.7rem;color:#444;margin-top:1px}
-.badge{background:#0d2e0d;color:#4caf50;border-radius:6px;
-       padding:3px 10px;font-size:.8rem;font-weight:600}
+#MainMenu, footer, header { visibility: hidden; }
+.stDeployButton { display: none; }
+.block-container {
+    padding: 2rem 3rem 3rem 3rem;
+    max-width: 1200px;
+}
+.hero-title {
+    font-size: 2.6rem; font-weight: 700; letter-spacing: -0.02em;
+    color: #f0ece4; margin: 0 0 0.4rem 0; line-height: 1.15;
+}
+.hero-sub {
+    font-size: 1.05rem; color: #6b6b6b; font-weight: 400;
+    max-width: 680px; line-height: 1.7; margin: 0 0 1.2rem 0;
+}
+.badge-success {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #0d2e0d; color: #4caf50;
+    border: 1px solid #1a4a1a; border-radius: 6px;
+    padding: 5px 14px; font-size: 0.82rem; font-weight: 600;
+}
+.metrics-row {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 12px; margin: 2rem 0;
+}
+.metric-card {
+    background: #111113; border: 1px solid #1e1e24;
+    border-radius: 10px; padding: 1.1rem 1rem;
+    position: relative; overflow: hidden;
+}
+.metric-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: var(--accent, #3B8BD4);
+}
+.metric-val {
+    font-size: 1.9rem; font-weight: 700; color: var(--accent, #3B8BD4);
+    letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 4px 0;
+}
+.metric-lbl {
+    font-size: 0.67rem; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #4a4a55; margin: 0 0 2px 0;
+}
+.metric-sub { font-size: 0.72rem; color: #333340; margin: 0; }
+.sec-header {
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: #3B8BD4;
+    margin: 0 0 1rem 0; display: flex; align-items: center; gap: 10px;
+}
+.sec-header::after {
+    content: ''; flex: 1; height: 1px; background: #1a1a22;
+}
+.info-panel {
+    background: #0d0d10; border: 1px solid #1a1a22;
+    border-radius: 10px; padding: 1.2rem 1.4rem;
+}
+.info-panel h4 {
+    font-size: 0.8rem; font-weight: 600; color: #c0bdb6; margin: 0 0 0.5rem 0;
+}
+.info-panel p {
+    font-size: 0.82rem; color: #55555f; line-height: 1.7; margin: 0;
+}
+.results-table {
+    width: 100%; border-collapse: collapse; font-size: 0.85rem;
+}
+.results-table th {
+    text-align: left; padding: 8px 12px; font-size: 0.67rem;
+    font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #3B8BD4; border-bottom: 1px solid #1a1a22;
+}
+.results-table td {
+    padding: 10px 12px; color: #a0a0aa; border-bottom: 1px solid #111115;
+}
+.results-table tr:hover td { background: #111115; }
+.results-table .val { color: #f0ece4; font-weight: 600; }
+.results-table .good { color: #4caf50; font-weight: 600; }
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0; border-bottom: 1px solid #1a1a22; background: transparent;
+}
+.stTabs [data-baseweb="tab"] {
+    padding: 10px 20px; font-size: 0.82rem; font-weight: 500;
+    color: #44444f; border-bottom: 2px solid transparent;
+    border-radius: 0; background: transparent;
+}
+.stTabs [aria-selected="true"] {
+    color: #f0ece4 !important;
+    border-bottom: 2px solid #3B8BD4 !important;
+    background: transparent !important;
+}
+.divider { border: none; border-top: 1px solid #1a1a22; margin: 2rem 0; }
+.spec-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.spec-item {
+    padding: 0.9rem 1rem; background: #0d0d10;
+    border: 1px solid #1a1a22; border-radius: 8px;
+}
+.spec-item .spec-key {
+    font-size: 0.67rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #3a3a50; margin: 0 0 4px 0;
+}
+.spec-item .spec-val {
+    font-size: 0.9rem; font-weight: 600; color: #c0bdb6; margin: 0;
+}
+.spec-item .spec-desc {
+    font-size: 0.75rem; color: #404050; margin: 3px 0 0 0;
+}
+.arch-container {
+    background: #0d0d0f; border: 1px solid #1a1a22;
+    border-radius: 10px; padding: 0; overflow: hidden;
+}
 </style>
 """,
     unsafe_allow_html=True,
 )
 
+# ── Helpers ────────────────────────────────────────────────────────────────
+
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
 
 
-def gif_to_b64(path: str) -> str:
+def gif_b64(path: str) -> str:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
 
-def show_gif(path: str, caption: str = "", width: int = 700) -> None:
+def show_gif(path: str, css_width: str = "100%", caption: str = "") -> bool:
     p = Path(path)
     if not p.exists():
-        st.warning(f"Asset not found: {path}")
-        return
-    b64 = gif_to_b64(path)
+        st.caption(f"Asset not found: {path}")
+        return False
+    b64 = gif_b64(path)
     st.markdown(
         f'<img src="data:image/gif;base64,{b64}" '
-        f'style="width:{width}px;max-width:100%;border-radius:8px;" '
+        f'style="width:{css_width};border-radius:8px;display:block;" '
         f'alt="{caption}">',
         unsafe_allow_html=True,
     )
     if caption:
         st.caption(caption)
+    return True
 
 
-# ── header ────────────────────────────────────────────────────────────────────
+def load_best_info() -> dict:
+    p = ASSETS / "best_episode_info.json"
+    if p.exists():
+        with open(p) as f:
+            return json.load(f)
+    return {"reward": 928, "steps": 716, "seed": 3}
 
-st.markdown("# \U0001f3ce\ufe0f CarRacing-v2 PPO Agent")
+
+# ── Hero ───────────────────────────────────────────────────────────────────
+
 st.markdown(
-    "A deep RL agent that learned to drive from raw pixels \u2014 "
-    "no GPS, no map, no hand-coded rules. "
-    "Trained with Proximal Policy Optimization over ~5M environment steps."
-)
-st.markdown(
-    '<span class="badge">\u2705 Target 700 achieved \u2014 median 864.7 / 1000</span>',
+    '<h1 class="hero-title">CarRacing-v2 PPO Agent</h1>',
     unsafe_allow_html=True,
 )
-st.markdown("---")
+st.markdown(
+    '<p class="hero-sub">'
+    "A deep reinforcement learning agent trained to drive from raw pixels "
+    "\u2014 no GPS, no map, no hand-coded rules. Implemented PPO from scratch "
+    "in PyTorch and trained over 5M environment steps on AWS EC2."
+    "</p>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<span class="badge-success">\u2713 &nbsp;Target 700 achieved \u2014 '
+    "median 864.7 / 1000 over 50 episodes</span>",
+    unsafe_allow_html=True,
+)
 
-# ── metrics ──────────────────────────────────────────────────────────────────
+# ── Metric cards ───────────────────────────────────────────────────────────
 
-c1, c2, c3, c4, c5 = st.columns(5)
-metrics = [
-    ("864.7", "Median reward", "50 episodes"),
-    ("933.3", "Best episode", "single run"),
-    ("66%", "Above 700", "target threshold"),
-    ("~5M", "Train steps", "~9.6 hrs on T4"),
-    ("1.7M", "Parameters", "CNN + actor-critic"),
-]
-for col, (val, lbl, sub) in zip([c1, c2, c3, c4, c5], metrics):
-    with col:
+best = load_best_info()
+st.markdown(
+    f"""
+<div class="metrics-row">
+  <div class="metric-card" style="--accent:#3B8BD4">
+    <p class="metric-lbl">Median Reward</p>
+    <p class="metric-val">864.7</p>
+    <p class="metric-sub">50 episodes</p>
+  </div>
+  <div class="metric-card" style="--accent:#4caf50">
+    <p class="metric-lbl">Best Episode</p>
+    <p class="metric-val">933.3</p>
+    <p class="metric-sub">single run</p>
+  </div>
+  <div class="metric-card" style="--accent:#BA7517">
+    <p class="metric-lbl">Above Target</p>
+    <p class="metric-val">66%</p>
+    <p class="metric-sub">threshold 700</p>
+  </div>
+  <div class="metric-card" style="--accent:#7F77DD">
+    <p class="metric-lbl">Train Steps</p>
+    <p class="metric-val">5M</p>
+    <p class="metric-sub">9.6 hrs \u00b7 T4 GPU</p>
+  </div>
+  <div class="metric-card" style="--accent:#D85A30">
+    <p class="metric-lbl">Parameters</p>
+    <p class="metric-val">1.78M</p>
+    <p class="metric-sub">CNN + actor-critic</p>
+  </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+# ── Tabs ───────────────────────────────────────────────────────────────────
+
+tab_demo, tab_train, tab_arch, tab_about = st.tabs(
+    ["  Demo  ", "  Training  ", "  Architecture  ", "  About  "]
+)
+
+# ══════════════════════════════════════════════════════════════════
+# TAB 1 \u2014 DEMO
+# ══════════════════════════════════════════════════════════════════
+with tab_demo:
+    st.markdown(
+        '<div class="sec-header">Best episode</div>', unsafe_allow_html=True
+    )
+
+    col_gif, col_info = st.columns([3, 1], gap="large")
+
+    with col_gif:
+        shown = False
+        for candidate in [
+            "assets/showcase.gif",
+            "assets/best_lap.gif",
+            "assets/best_agent.gif",
+        ]:
+            if show_gif(candidate, css_width="100%"):
+                shown = True
+                break
+        if not shown:
+            st.info("Run scripts/record_showcase.py to generate the demo GIF")
+
+    with col_info:
         st.markdown(
-            f'<div class="mcard">'
-            f'<p class="mv">{val}</p>'
-            f'<p class="ml">{lbl}</p>'
-            f'<p class="ms">{sub}</p>'
-            f"</div>",
+            f"""
+<div class="info-panel" style="height:100%">
+  <h4>Episode details</h4>
+  <p>Cherry-picked from 18 trials across top checkpoints using deterministic
+  policy (mean action \u2014 no sampling).</p>
+  <br>
+  <div style="display:grid;gap:10px;margin-top:4px">
+    <div>
+      <p style="color:#3a3a50;font-size:.67rem;letter-spacing:.1em;
+         text-transform:uppercase;margin:0 0 2px">Reward</p>
+      <p style="color:#4caf50;font-size:1.4rem;font-weight:700;margin:0">
+        {best.get('reward', 928):.0f}</p>
+    </div>
+    <div>
+      <p style="color:#3a3a50;font-size:.67rem;letter-spacing:.1em;
+         text-transform:uppercase;margin:0 0 2px">Steps</p>
+      <p style="color:#c0bdb6;font-size:1.1rem;font-weight:600;margin:0">
+        {best.get('steps', 716)}</p>
+    </div>
+    <div>
+      <p style="color:#3a3a50;font-size:.67rem;letter-spacing:.1em;
+         text-transform:uppercase;margin:0 0 2px">Policy</p>
+      <p style="color:#c0bdb6;font-size:.85rem;margin:0">
+        Deterministic<br>(mean action)</p>
+    </div>
+    <div>
+      <p style="color:#3a3a50;font-size:.67rem;letter-spacing:.1em;
+         text-transform:uppercase;margin:0 0 2px">Checkpoint</p>
+      <p style="color:#c0bdb6;font-size:.85rem;margin:0">Step 4.75M</p>
+    </div>
+  </div>
+</div>
+""",
             unsafe_allow_html=True,
         )
 
-st.markdown("")
-
-# ── tabs ─────────────────────────────────────────────────────────────────────
-
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["\U0001f3ac Demo", "\U0001f4c8 Training", "\U0001f9e0 Architecture", "\U0001f4cb About"]
-)
-
-# ── TAB 1: DEMO ──────────────────────────────────────────────────────────────
-
-with tab1:
-    st.markdown("### Best agent \u2014 full lap")
+    # Track layout
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
     st.markdown(
-        "Best episode cherry-picked from 18 trials across top checkpoints. "
-        "Deterministic policy (mean action, no sampling) \u2014 "
-        "reward **928**, completed in 716 steps."
+        '<div class="sec-header">Track layout</div>', unsafe_allow_html=True
     )
 
-    best_candidates = [
-        ASSETS / "showcase.gif",
-        ASSETS / "best_lap.gif",
-        ASSETS / "best_agent.gif",
-    ]
-    shown = False
-    for c in best_candidates:
-        if c.exists():
-            show_gif(
-                str(c),
-                caption="Best episode \u2014 deterministic policy, seed selected from 18 trials",
-                width=680,
-            )
-            shown = True
-            break
-    if not shown:
-        st.info("showcase.gif not found \u2014 run scripts/record_showcase.py on EC2")
+    col_track, col_track_info = st.columns([2, 1], gap="large")
 
-    st.markdown("---")
-    st.markdown("### Learning progression")
+    with col_track:
+        track_shown = False
+        for tp in [ASSETS / "track_layout.png", ASSETS / "track_start.png"]:
+            if tp.exists():
+                st.image(
+                    Image.open(tp),
+                    width=600,
+                    caption="CarRacing-v2 \u2014 procedurally generated track",
+                )
+                track_shown = True
+                break
+        if not track_shown:
+            st.info("Run scripts/generate_track_image.py to generate track image")
+
+    with col_track_info:
+        st.markdown(
+            """
+<div class="info-panel">
+  <h4>Environment</h4>
+  <p>CarRacing-v2 is a continuous control benchmark from OpenAI Gymnasium.
+  The track is procedurally generated each episode \u2014 the agent cannot memorise
+  a fixed layout and must generalise from visual features alone.</p>
+  <br>
+  <h4>Observation</h4>
+  <p>96\u00d796 RGB top-down view, preprocessed to 4 stacked 84\u00d784 grayscale frames.
+  Stacking provides implicit velocity information.</p>
+  <br>
+  <h4>Action space</h4>
+  <p>Continuous: steering \u2208 [\u22121, 1], gas \u2208 [0, 1], brake \u2208 [0, 1].</p>
+  <br>
+  <h4>Reward</h4>
+  <p>+1000/N per track tile visited, \u22120.1 per frame (time penalty),
+  \u2212100 if the car leaves the track.</p>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    # Progression
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
     st.markdown(
-        "From random flailing at step 0 to consistent lap completion by step 4.9M. "
-        "Each clip is a separate checkpoint showing how behaviour evolved."
+        '<div class="sec-header">Learning progression</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "From random exploration at step 0 to consistent lap completion. "
+        "Each segment is a separate checkpoint."
+    )
+    for candidate in [
+        str(ASSETS / "progression_clean.gif"),
+        str(ASSETS / "progression.gif"),
+    ]:
+        if show_gif(candidate, css_width="100%"):
+            break
+
+# ══════════════════════════════════════════════════════════════════
+# TAB 2 \u2014 TRAINING
+# ══════════════════════════════════════════════════════════════════
+with tab_train:
+    st.markdown(
+        '<div class="sec-header">Training curves</div>', unsafe_allow_html=True
     )
 
-    prog_candidates = [ASSETS / "progression_clean.gif", ASSETS / "progression.gif"]
-    for c in prog_candidates:
-        if c.exists():
-            show_gif(
-                str(c),
-                caption="Progression: step 500K \u2192 750K \u2192 4.9M \u2192 5M",
-                width=680,
-            )
+    csv_candidates = [ASSETS / "training_metrics.csv", ASSETS / "eval_metrics.csv"]
+    df = None
+    for cp in csv_candidates:
+        if cp.exists():
+            df = pd.read_csv(cp)
+            df.columns = [c.lower().strip() for c in df.columns]
             break
 
-    demo_clip = ASSETS / "demo_clip.gif"
-    if demo_clip.exists():
-        st.markdown("---")
-        st.markdown("### Highlight clip")
-        show_gif(
-            str(demo_clip), caption="10-second highlight \u2014 smoothest segment", width=500
-        )
-
-# ── TAB 2: TRAINING ──────────────────────────────────────────────────────────
-
-with tab2:
-    st.markdown("### Training curves")
-
-    csv_path = ASSETS / "training_metrics.csv"
-    if not csv_path.exists():
-        csv_path = ASSETS / "eval_metrics.csv"
-
-    if csv_path.exists():
-        df = pd.read_csv(csv_path)
-        st.caption(
-            f"Loaded {len(df):,} rows from {csv_path.name} \u2014 columns: {list(df.columns)}"
-        )
-
-        df.columns = [c.lower().strip() for c in df.columns]
-
+    if df is not None:
         step_col = next((c for c in df.columns if "step" in c), None)
         reward_col = next(
             (c for c in df.columns if "reward" in c or "return" in c), None
         )
-        entropy_col = next((c for c in df.columns if "entrop" in c), None)
-        vloss_col = next(
+        ent_col = next((c for c in df.columns if "entrop" in c), None)
+        vl_col = next(
             (c for c in df.columns if "value" in c and "loss" in c), None
         )
 
+        PLOT_BG = "rgba(0,0,0,0)"
+        GRID_COL = "rgba(255,255,255,0.04)"
+        FONT = dict(family="monospace", size=11, color="#888880")
+
+        def base_layout(title: str, yaxis_title: str) -> dict:
+            return dict(
+                title=dict(
+                    text=title,
+                    font=dict(size=13, color="#888880", family="monospace"),
+                ),
+                xaxis=dict(
+                    title="Training steps",
+                    tickfont=FONT,
+                    gridcolor=GRID_COL,
+                    linecolor="#1a1a22",
+                    tickformat=".2s",
+                ),
+                yaxis=dict(
+                    title=yaxis_title,
+                    tickfont=FONT,
+                    gridcolor=GRID_COL,
+                    linecolor="#1a1a22",
+                ),
+                paper_bgcolor=PLOT_BG,
+                plot_bgcolor="#0a0a0c",
+                height=340,
+                margin=dict(l=55, r=30, t=50, b=50),
+                legend=dict(
+                    font=dict(size=10, color="#666"), bgcolor="rgba(0,0,0,0)"
+                ),
+                hovermode="x unified",
+            )
+
         if step_col and reward_col:
-            fig = go.Figure()
-            fig.add_trace(
+            fig1 = go.Figure()
+            window = max(1, len(df) // 40)
+            smoothed = df[reward_col].rolling(window, center=True).mean()
+
+            fig1.add_trace(
                 go.Scatter(
                     x=df[step_col],
                     y=df[reward_col],
                     mode="lines",
-                    name="Eval reward",
-                    line=dict(color="#3B8BD4", width=1.5),
-                    fill="tozeroy",
-                    fillcolor="rgba(59,139,212,0.08)",
+                    name="Raw eval",
+                    line=dict(color="rgba(59,139,212,0.2)", width=1),
                 )
             )
-            fig.add_hline(y=0, line_dash="dot", line_color="rgba(255,255,255,0.2)")
-            fig.add_vline(
+            fig1.add_trace(
+                go.Scatter(
+                    x=df[step_col],
+                    y=smoothed,
+                    mode="lines",
+                    name="Smoothed",
+                    line=dict(color="#3B8BD4", width=2),
+                    fill="tozeroy",
+                    fillcolor="rgba(59,139,212,0.06)",
+                )
+            )
+            fig1.add_hline(
+                y=0, line_dash="dot", line_color="rgba(255,255,255,0.1)"
+            )
+            fig1.add_hline(
+                y=700,
+                line_dash="dash",
+                line_color="rgba(76,175,80,0.4)",
+                annotation_text="Target 700",
+                annotation_font_color="#4caf50",
+                annotation_font_size=10,
+            )
+            fig1.add_vline(
                 x=1_850_000,
                 line_dash="dash",
-                line_color="rgba(255,180,50,0.5)",
+                line_color="rgba(186,117,23,0.4)",
                 annotation_text="Breakthrough",
+                annotation_font_color="#BA7517",
+                annotation_font_size=10,
                 annotation_position="top right",
             )
-            best_row = df.loc[df[reward_col].idxmax()]
-            fig.add_trace(
+            best_idx = df[reward_col].idxmax()
+            fig1.add_trace(
                 go.Scatter(
-                    x=[best_row[step_col]],
-                    y=[best_row[reward_col]],
+                    x=[df[step_col].iloc[best_idx]],
+                    y=[df[reward_col].iloc[best_idx]],
                     mode="markers+text",
-                    marker=dict(color="#D85A30", size=10),
-                    text=[f"  Best: {best_row[reward_col]:.0f}"],
+                    marker=dict(color="#D85A30", size=8, symbol="circle"),
+                    text=[f"  {df[reward_col].iloc[best_idx]:.0f}"],
                     textposition="middle right",
+                    textfont=dict(size=10, color="#D85A30"),
                     name="Best checkpoint",
                     showlegend=False,
                 )
             )
-            fig.update_layout(
-                title="Eval reward vs training steps",
-                xaxis_title="Steps",
-                yaxis_title="Eval reward",
-                template="plotly_dark",
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                height=360,
-                margin=dict(l=50, r=30, t=50, b=50),
+            fig1.update_layout(
+                **base_layout("Eval reward vs training steps", "Eval reward")
             )
-            st.plotly_chart(fig, width="stretch")
+            st.plotly_chart(fig1, use_container_width=True)
 
-            cols_available = []
-            if entropy_col:
-                cols_available.append((entropy_col, "Entropy", "#1D9E75"))
-            if vloss_col:
-                cols_available.append((vloss_col, "Value loss", "#D85A30"))
-
-            if cols_available:
-                fig2 = go.Figure()
-                for col, name, color in cols_available:
-                    fig2.add_trace(
-                        go.Scatter(
-                            x=df[step_col],
-                            y=df[col],
-                            mode="lines",
-                            name=name,
-                            line=dict(color=color, width=1.2),
-                        )
-                    )
-                fig2.update_layout(
-                    title="Entropy & value loss",
-                    xaxis_title="Steps",
-                    template="plotly_dark",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    height=280,
-                    margin=dict(l=50, r=30, t=50, b=50),
+        secondary_figs = []
+        if ent_col and step_col:
+            fig_e = go.Figure()
+            fig_e.add_trace(
+                go.Scatter(
+                    x=df[step_col],
+                    y=df[ent_col],
+                    mode="lines",
+                    line=dict(color="#1D9E75", width=1.5),
+                    fill="tozeroy",
+                    fillcolor="rgba(29,158,117,0.06)",
+                    name="Entropy",
                 )
-                st.plotly_chart(fig2, width="stretch")
-        else:
-            st.write("Columns found:", list(df.columns))
-            st.dataframe(df.head(20))
+            )
+            fig_e.update_layout(**base_layout("Policy entropy", "Entropy H(\u03c0)"))
+            secondary_figs.append(fig_e)
+
+        if vl_col and step_col:
+            fig_v = go.Figure()
+            fig_v.add_trace(
+                go.Scatter(
+                    x=df[step_col],
+                    y=df[vl_col],
+                    mode="lines",
+                    line=dict(color="#D85A30", width=1.5),
+                    fill="tozeroy",
+                    fillcolor="rgba(216,90,48,0.06)",
+                    name="Value loss",
+                )
+            )
+            fig_v.update_layout(**base_layout("Value loss", "MSE"))
+            secondary_figs.append(fig_v)
+
+        if secondary_figs:
+            sec_cols = st.columns(len(secondary_figs), gap="medium")
+            for col, fig in zip(sec_cols, secondary_figs):
+                with col:
+                    st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("training_metrics.csv not found in assets/")
 
-    st.markdown("---")
-    st.markdown("### Eval results summary")
-    results = {
-        "Metric": [
-            "Best eval reward",
-            "50-episode median",
-            "50-episode mean",
-            "50-episode max",
-            "Episodes > 700",
-            "Training steps",
-            "Training time",
-        ],
-        "Value": ["811.9", "864.7", "632.1", "933.3", "66%", "~5,000,000", "~9.6 hrs"],
-        "Notes": [
-            "checkpoint at step 4.9M",
-            "strong, consistent performance",
-            "pulled down by occasional crashes",
-            "near-perfect lap",
-            "target was 700",
-            "on AWS EC2 g4dn.xlarge",
-            "NVIDIA T4 GPU",
-        ],
-    }
-    st.dataframe(pd.DataFrame(results), width="stretch", hide_index=True)
+    # Results table
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="sec-header">Evaluation results</div>',
+        unsafe_allow_html=True,
+    )
 
-# ── TAB 3: ARCHITECTURE ─────────────────────────────────────────────────────
-
-with tab3:
-    st.markdown("### Model architecture")
-
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        st.markdown("**CNN feature extractor**")
-        arch = pd.DataFrame(
-            {
-                "Layer": [
-                    "Input",
-                    "Conv2d 1",
-                    "Conv2d 2",
-                    "Conv2d 3",
-                    "Flatten",
-                    "Linear",
-                ],
-                "Shape out": [
-                    "4\u00d784\u00d784",
-                    "32\u00d720\u00d720",
-                    "64\u00d79\u00d79",
-                    "64\u00d77\u00d77",
-                    "3136",
-                    "512",
-                ],
-                "Details": [
-                    "4 stacked grayscale frames",
-                    "32 filters, 8\u00d78, stride 4",
-                    "64 filters, 4\u00d74, stride 2",
-                    "64 filters, 3\u00d73, stride 1",
-                    "\u2014",
-                    "ReLU activation",
-                ],
-                "Params": [
-                    "\u2014",
-                    "8,224",
-                    "131,136",
-                    "36,928",
-                    "\u2014",
-                    "1,605,632",
-                ],
-            }
-        )
-        st.dataframe(arch, width="stretch", hide_index=True)
-
-        st.markdown("**Actor & critic heads** (shared backbone)")
-        heads = pd.DataFrame(
-            {
-                "Head": ["Actor \u03bc", "Actor log \u03c3", "Critic V"],
-                "Output": ["3", "3", "1"],
-                "Meaning": [
-                    "Mean steering/gas/brake",
-                    "Log std of Gaussian policy",
-                    "Expected return from state",
-                ],
-            }
-        )
-        st.dataframe(heads, width="stretch", hide_index=True)
-
-    with c2:
-        st.markdown("**Hyperparameters**")
-        hp = pd.DataFrame(
-            {
-                "Parameter": [
-                    "Algorithm",
-                    "n_envs",
-                    "rollout_steps",
-                    "minibatch_size",
-                    "n_epochs",
-                    "learning_rate",
-                    "gamma",
-                    "gae_lambda",
-                    "clip_epsilon",
-                    "vf_coef",
-                    "ent_coef",
-                    "target_kl",
-                    "total_steps",
-                ],
-                "Value": [
-                    "PPO",
-                    "8",
-                    "128",
-                    "256",
-                    "4",
-                    "3e-4 \u2192 0 (linear)",
-                    "0.99",
-                    "0.95",
-                    "0.2",
-                    "0.5",
-                    "0.01",
-                    "0.015",
-                    "5,000,000",
-                ],
-            }
-        )
-        st.dataframe(hp, width="stretch", hide_index=True)
-
-    st.markdown("---")
-    st.markdown("### Why these choices?")
-
-    e1, e2, e3 = st.columns(3)
-    with e1:
-        st.markdown("**PPO over DQN**")
-        st.markdown(
-            "CarRacing has *continuous* actions \u2014 steering is a float "
-            "in [-1, 1], not a discrete left/right choice. DQN only handles "
-            "discrete actions. PPO uses a Gaussian policy that naturally "
-            "outputs continuous values."
-        )
-    with e2:
-        st.markdown("**Frame stacking**")
-        st.markdown(
-            "A single frame contains no velocity information \u2014 you can't "
-            "tell if the car is moving or still. Stacking 4 consecutive "
-            "frames gives the network implicit motion through pixel "
-            "differences, restoring the Markov property."
-        )
-    with e3:
-        st.markdown("**GAE advantage**")
-        st.markdown(
-            "We can't wait until race end to assign credit. GAE (\u03bb=0.95) "
-            "blends short-horizon TD estimates (low variance, biased) with "
-            "long-horizon returns (unbiased, high variance) \u2014 getting the "
-            "best of both worlds."
-        )
-
-# ── TAB 4: ABOUT ─────────────────────────────────────────────────────────────
-
-with tab4:
-    st.markdown("### Project overview")
     st.markdown(
         """
-This project implements **Proximal Policy Optimization (PPO)** from scratch in PyTorch
-to train an agent that drives in OpenAI Gymnasium's CarRacing-v2 environment using
-only raw pixel observations.
-
-**Environment:** CarRacing-v2 (Gymnasium 0.29.1)
-- Observation: 96\u00d796 RGB top-down view (preprocessed to 4\u00d784\u00d784 grayscale stack)
-- Action space: continuous \u2014 steering \u2208 [-1,1], gas \u2208 [0,1], brake \u2208 [0,1]
-- Reward: +1000/N per track tile visited, -0.1 per frame, -100 if off-track
-
-**Training infrastructure:** AWS EC2 g4dn.xlarge (NVIDIA T4 GPU, 16GB VRAM)
-
-**Key implementation details:**
-- Orthogonal weight initialisation (\u221a2 for CNN, 0.01 for actor, 1.0 for critic)
-- Linear learning rate decay 3e-4 \u2192 0 over all training steps
-- Gradient clipping at 0.5
-- Value function clipping matching policy clip range
-- Entropy bonus (0.01) to prevent premature convergence
-    """
+<div class="info-panel">
+<table class="results-table">
+  <thead><tr><th>Metric</th><th>Value</th><th>Context</th></tr></thead>
+  <tbody>
+    <tr><td>Best eval reward</td>
+        <td class="val">811.9</td>
+        <td>checkpoint at step 4.9M</td></tr>
+    <tr><td>50-episode median</td>
+        <td class="good">864.7</td>
+        <td>strong, consistent performance</td></tr>
+    <tr><td>50-episode mean</td>
+        <td class="val">632.1</td>
+        <td>pulled down by occasional crashes</td></tr>
+    <tr><td>50-episode max</td>
+        <td class="good">933.3</td>
+        <td>near-perfect lap</td></tr>
+    <tr><td>Episodes scoring > 700</td>
+        <td class="good">66%</td>
+        <td>target threshold \u2713</td></tr>
+    <tr><td>Training steps</td>
+        <td class="val">~5,000,000</td>
+        <td>8 parallel environments</td></tr>
+    <tr><td>Wall-clock time</td>
+        <td class="val">~9.6 hours</td>
+        <td>AWS EC2 g4dn.xlarge \u00b7 NVIDIA T4</td></tr>
+  </tbody>
+</table>
+</div>
+""",
+        unsafe_allow_html=True,
     )
 
-    st.markdown("---")
-    st.markdown("### Training timeline")
-    timeline = pd.DataFrame(
-        {
-            "Phase": [
-                "Random exploration",
-                "Early learning",
-                "Breakthrough",
-                "Consolidation",
-                "Final polish",
-            ],
-            "Steps": [
-                "0 \u2192 1.5M",
-                "1.5M \u2192 1.85M",
-                "1.85M \u2192 2.7M",
-                "2.7M \u2192 4.5M",
-                "4.5M \u2192 5M",
-            ],
-            "Avg reward": [
-                "\u221284 \u2192 \u221270",
-                "\u221270 \u2192 +30",
-                "+30 \u2192 +130",
-                "+20 \u2192 +80",
-                "+50 \u2192 +80",
-            ],
-            "What happened": [
-                "Agent flails randomly, occasionally stays on track",
-                "Learns to steer, still crashes frequently",
-                "Discovers that staying on track is rewarded \u2014 hockey stick begins",
-                "Refines steering, learns to brake on corners",
-                "LR near zero, minor fine-tuning",
-            ],
-        }
+# ══════════════════════════════════════════════════════════════════
+# TAB 3 \u2014 ARCHITECTURE
+# ══════════════════════════════════════════════════════════════════
+with tab_arch:
+    st.markdown(
+        '<div class="sec-header">Network architecture</div>',
+        unsafe_allow_html=True,
     )
-    st.dataframe(timeline, width="stretch", hide_index=True)
 
-    st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**Built with**")
-        for tech in [
-            "PyTorch 2.x + CUDA",
-            "Gymnasium 0.29.1",
-            "Hydra (config)",
-            "Weights & Biases",
-            "AWS EC2 g4dn.xlarge",
-        ]:
-            st.markdown(f"- {tech}")
-    with col2:
-        st.markdown("**Links**")
+    arch_img_path = ASSETS / "architecture_diagram.png"
+    if arch_img_path.exists():
+        st.markdown('<div class="arch-container">', unsafe_allow_html=True)
+        st.image(Image.open(arch_img_path), use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.info("Run scripts/generate_arch_diagram.py to generate diagram")
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+    col_l, col_r = st.columns(2, gap="large")
+
+    with col_l:
         st.markdown(
-            "- [GitHub Repository](https://github.com/anmol0705/CarRacing-v2-PPO-Agent)"
+            '<div class="sec-header">Layer details</div>',
+            unsafe_allow_html=True,
         )
         st.markdown(
-            "- [Weights & Biases Run](https://wandb.ai/anmol_752005/carracing-ppo)"
+            """
+<div class="info-panel">
+<table class="results-table">
+  <thead>
+    <tr><th>Layer</th><th>Output shape</th><th>Details</th><th>Params</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Input</td><td class="val">4\u00d784\u00d784</td>
+        <td>4 stacked grayscale frames</td><td>\u2014</td></tr>
+    <tr><td>Conv2d 1</td><td class="val">32\u00d720\u00d720</td>
+        <td>32 filters \u00b7 8\u00d78 \u00b7 stride 4</td>
+        <td class="val">8,224</td></tr>
+    <tr><td>Conv2d 2</td><td class="val">64\u00d79\u00d79</td>
+        <td>64 filters \u00b7 4\u00d74 \u00b7 stride 2</td>
+        <td class="val">131,136</td></tr>
+    <tr><td>Conv2d 3</td><td class="val">64\u00d77\u00d77</td>
+        <td>64 filters \u00b7 3\u00d73 \u00b7 stride 1</td>
+        <td class="val">36,928</td></tr>
+    <tr><td>Flatten</td><td class="val">3136</td>
+        <td>\u2014</td><td>\u2014</td></tr>
+    <tr><td>Linear</td><td class="val">512</td>
+        <td>ReLU \u00b7 shared backbone</td>
+        <td class="val">1,605,632</td></tr>
+    <tr><td>Actor \u03bc</td><td class="val">3</td>
+        <td>Mean \u2014 steer, gas, brake</td>
+        <td class="val">1,539</td></tr>
+    <tr><td>Actor log \u03c3</td><td class="val">3</td>
+        <td>Log std of Gaussian</td><td class="val">3</td></tr>
+    <tr><td>Critic V</td><td class="val">1</td>
+        <td>Expected return V(s)</td>
+        <td class="val">513</td></tr>
+  </tbody>
+</table>
+</div>
+""",
+            unsafe_allow_html=True,
         )
 
-# ── footer ────────────────────────────────────────────────────────────────────
+    with col_r:
+        st.markdown(
+            '<div class="sec-header">Hyperparameters</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            """
+<div class="info-panel">
+<table class="results-table">
+  <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Algorithm</td><td class="val">PPO (from scratch)</td></tr>
+    <tr><td>n_envs</td><td class="val">8</td></tr>
+    <tr><td>rollout_steps</td><td class="val">128</td></tr>
+    <tr><td>minibatch_size</td><td class="val">256</td></tr>
+    <tr><td>n_epochs</td><td class="val">4</td></tr>
+    <tr><td>learning_rate</td><td class="val">3e-4 \u2192 0 (linear)</td></tr>
+    <tr><td>gamma</td><td class="val">0.99</td></tr>
+    <tr><td>gae_lambda</td><td class="val">0.95</td></tr>
+    <tr><td>clip_epsilon</td><td class="val">0.2</td></tr>
+    <tr><td>vf_coef</td><td class="val">0.5</td></tr>
+    <tr><td>ent_coef</td><td class="val">0.01</td></tr>
+    <tr><td>target_kl</td><td class="val">0.015</td></tr>
+    <tr><td>grad_clip</td><td class="val">0.5</td></tr>
+  </tbody>
+</table>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
 
-st.markdown("---")
-st.caption(
-    "CarRacing-v2 PPO Agent \u00b7 Trained on AWS EC2 \u00b7 Built with PyTorch & Gymnasium"
+    # Design choices
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="sec-header">Design decisions</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+<div class="spec-grid">
+  <div class="spec-item">
+    <p class="spec-key">PPO over DQN</p>
+    <p class="spec-val">Continuous action space</p>
+    <p class="spec-desc">
+      Steering is a float in [\u22121, 1], not a discrete choice.
+      DQN requires discretisation which loses precision.
+      PPO's Gaussian policy outputs continuous values naturally.
+    </p>
+  </div>
+  <div class="spec-item">
+    <p class="spec-key">Frame stacking \u00d7 4</p>
+    <p class="spec-val">Implicit velocity encoding</p>
+    <p class="spec-desc">
+      A single frame is position-only \u2014 the agent can't tell if
+      the car is moving or still. Stacking 4 consecutive frames
+      encodes velocity via pixel differences, restoring the Markov property.
+    </p>
+  </div>
+  <div class="spec-item">
+    <p class="spec-key">GAE (\u03bb = 0.95)</p>
+    <p class="spec-val">Bias-variance trade-off</p>
+    <p class="spec-desc">
+      Generalised Advantage Estimation blends TD(0) (low variance,
+      biased) with Monte Carlo (unbiased, high variance). \u03bb = 0.95
+      leans toward MC while keeping variance manageable.
+    </p>
+  </div>
+  <div class="spec-item">
+    <p class="spec-key">Entropy bonus (0.01)</p>
+    <p class="spec-val">Prevents premature convergence</p>
+    <p class="spec-desc">
+      Adds H(\u03c0) to the objective. Without it the policy collapses
+      to a single deterministic action early in training and stops
+      exploring.
+    </p>
+  </div>
+  <div class="spec-item">
+    <p class="spec-key">Orthogonal initialisation</p>
+    <p class="spec-val">Stable gradient flow</p>
+    <p class="spec-desc">
+      CNN layers: \u221a2 gain. Actor head: 0.01 (near-uniform initial policy).
+      Critic head: 1.0. Prevents vanishing/exploding gradients at init.
+    </p>
+  </div>
+  <div class="spec-item">
+    <p class="spec-key">Linear LR decay</p>
+    <p class="spec-val">3e-4 \u2192 0 over 5M steps</p>
+    <p class="spec-desc">
+      As the policy matures, smaller updates prevent overshooting.
+      By step 5M the learning rate was near zero \u2014 the agent was
+      effectively in fine-tuning mode.
+    </p>
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+# ══════════════════════════════════════════════════════════════════
+# TAB 4 \u2014 ABOUT
+# ══════════════════════════════════════════════════════════════════
+with tab_about:
+    col_a, col_b = st.columns([3, 2], gap="large")
+
+    with col_a:
+        st.markdown(
+            '<div class="sec-header">Project</div>', unsafe_allow_html=True
+        )
+        st.markdown(
+            """
+<div class="info-panel">
+  <p>
+  This project implements Proximal Policy Optimisation (PPO) entirely from scratch
+  in PyTorch \u2014 no RL libraries, no wrappers beyond Gymnasium's standard wrappers.
+  The goal was to understand every moving part of a modern policy gradient method
+  by building and debugging it hands-on.
+  </p>
+  <br>
+  <p>
+  The environment is CarRacing-v2 from OpenAI Gymnasium \u2014 a continuous control
+  benchmark where a car must navigate a procedurally generated track visible only
+  through a top-down 96\u00d796 pixel camera. The track changes every episode, so the
+  agent must learn general driving behaviour rather than memorise a fixed route.
+  </p>
+  <br>
+  <p>
+  Training ran for approximately 9.6 hours on a single NVIDIA T4 GPU (AWS EC2
+  g4dn.xlarge). The final agent achieves a median reward of 864.7 over 50 evaluation
+  episodes, well above the 700 target, with 66% of episodes completing the lap.
+  </p>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown('<hr class="divider">', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="sec-header">Training timeline</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            """
+<div class="info-panel">
+<table class="results-table">
+  <thead>
+    <tr><th>Phase</th><th>Steps</th><th>Reward</th><th>What happened</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Random exploration</td><td>0 \u2192 1.5M</td>
+        <td style="color:#D85A30">\u221284</td>
+        <td>Agent flails, rarely stays on track</td></tr>
+    <tr><td>Early learning</td><td>1.5M \u2192 1.85M</td>
+        <td style="color:#BA7517">\u221270 \u2192 +30</td>
+        <td>Learns basic steering</td></tr>
+    <tr><td>Breakthrough</td><td>1.85M \u2192 2.7M</td>
+        <td style="color:#4caf50">+30 \u2192 +130</td>
+        <td>Discovers staying on track is rewarded</td></tr>
+    <tr><td>Consolidation</td><td>2.7M \u2192 4.5M</td>
+        <td style="color:#4caf50">+20 \u2192 +80</td>
+        <td>Refines braking, corner entry</td></tr>
+    <tr><td>Fine-tuning</td><td>4.5M \u2192 5M</td>
+        <td style="color:#4caf50">+50 \u2192 +80</td>
+        <td>LR near zero, marginal gains</td></tr>
+  </tbody>
+</table>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    with col_b:
+        st.markdown(
+            '<div class="sec-header">Stack</div>', unsafe_allow_html=True
+        )
+        stack_items = [
+            ("PyTorch 2.x + CUDA", "Deep learning framework"),
+            ("Gymnasium 0.29.1", "RL environment"),
+            ("AWS EC2 g4dn.xlarge", "NVIDIA T4 \u00b7 16GB VRAM"),
+            ("Weights & Biases", "Experiment tracking"),
+            ("Hydra", "Config management"),
+            ("Streamlit", "This dashboard"),
+        ]
+        stack_html = (
+            '<div class="info-panel" style="margin-bottom:16px">'
+            '<div style="display:grid;gap:10px">'
+        )
+        for name, desc in stack_items:
+            stack_html += (
+                '<div style="display:flex;justify-content:space-between;'
+                "align-items:center;padding:6px 0;"
+                'border-bottom:1px solid #111115">'
+                f'<span style="color:#c0bdb6;font-size:.85rem;font-weight:500">'
+                f"{name}</span>"
+                f'<span style="color:#333340;font-size:.75rem">{desc}</span>'
+                "</div>"
+            )
+        stack_html += "</div></div>"
+        st.markdown(stack_html, unsafe_allow_html=True)
+
+        st.markdown(
+            '<div class="sec-header">Links</div>', unsafe_allow_html=True
+        )
+        st.markdown(
+            """
+<div class="info-panel">
+  <a href="https://github.com/anmol0705/CarRacing-v2-PPO-Agent"
+     style="color:#3B8BD4;text-decoration:none;font-size:.85rem">
+    \u2197 GitHub Repository
+  </a><br><br>
+  <a href="https://wandb.ai/anmol_752005/carracing-ppo"
+     style="color:#3B8BD4;text-decoration:none;font-size:.85rem">
+    \u2197 W&B Training Runs
+  </a>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+# ── Footer ─────────────────────────────────────────────────────────────────
+
+st.markdown('<hr class="divider">', unsafe_allow_html=True)
+st.markdown(
+    '<p style="font-size:.72rem;color:#222228;text-align:center">'
+    "CarRacing-v2 PPO Agent \u00b7 "
+    "Trained on AWS EC2 \u00b7 PyTorch \u00b7 Gymnasium"
+    "</p>",
+    unsafe_allow_html=True,
 )
