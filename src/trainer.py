@@ -79,6 +79,18 @@ class PPOTrainer:
         self.ep_rewards: list[float] = []
         self.ep_lengths: list[int] = []
 
+        # Resume from checkpoint if specified
+        resume_from = getattr(cfg.training, "resume_from", None)
+        if resume_from and Path(resume_from).exists():
+            ckpt = torch.load(resume_from, map_location=self.device, weights_only=True)
+            self.model.load_state_dict(ckpt["model_state_dict"])
+            if "optimizer_state_dict" in ckpt:
+                self.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+                for pg in self.optimizer.param_groups:
+                    pg["lr"] = cfg.training.lr
+            self.global_step = ckpt.get("global_step", 0)
+            print(f"Resumed from {resume_from} at step {self.global_step}")
+
         # Directories
         Path("checkpoints").mkdir(exist_ok=True)
         Path("assets").mkdir(exist_ok=True)
@@ -166,12 +178,18 @@ class PPOTrainer:
         obs, _ = self.envs.reset()
         start_time = time.time()
         update_count = 0
-        next_eval_step = cfg.logging.eval_interval
-        next_ckpt_step = cfg.logging.checkpoint_interval
-        next_gif_step = cfg.logging.gif_interval
+        eval_iv = cfg.logging.eval_interval
+        ckpt_iv = cfg.logging.checkpoint_interval
+        gif_iv = cfg.logging.gif_interval
+        next_eval_step = ((self.global_step // eval_iv) + 1) * eval_iv
+        next_ckpt_step = ((self.global_step // ckpt_iv) + 1) * ckpt_iv
+        next_gif_step = ((self.global_step // gif_iv) + 1) * gif_iv
         best_eval_reward = -float("inf")
 
-        print(f"Starting training: {total_timesteps} steps, {n_envs} envs")
+        resumed = getattr(cfg.training, "resume_from", None)
+        label = "Resuming" if resumed else "Starting"
+        print(f"{label} training: {total_timesteps} steps, {n_envs} envs")
+        print(f"Current step: {self.global_step}")
         print(f"Batch size: {batch_size}, minibatch: {cfg.training.minibatch_size}")
 
         while self.global_step < total_timesteps:
