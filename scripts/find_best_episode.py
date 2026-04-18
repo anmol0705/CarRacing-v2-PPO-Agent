@@ -19,10 +19,10 @@ from src.model import ActorCritic
 
 CHECKPOINTS = [
     "checkpoints/model_best.pt",
-    "checkpoints/model_4751360.pt",
     "checkpoints/model_5001216.pt",
+    "checkpoints/model_4751360.pt",
 ]
-SEEDS = list(range(6))
+SEEDS = list(range(200))
 MAX_STEPS = 1200
 DEVICE = torch.device("cpu")
 

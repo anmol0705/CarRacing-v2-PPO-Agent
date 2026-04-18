@@ -1,8 +1,8 @@
 {
   "checkpoint": "checkpoints/model_4751360.pt",
-  "seed": 3,
-  "reward": 928.399999999993,
-  "steps": 716,
-  "smoothness": 0.22744665086737748,
-  "combined_score": 735.1471079512485
+  "seed": 185,
+  "reward": 940.4,
+  "steps": 596,
+  "smoothness": 0.233142,
+  "combined_score": 738.0
 }
