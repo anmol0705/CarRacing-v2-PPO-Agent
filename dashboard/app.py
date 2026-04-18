@@ -112,12 +112,7 @@ with tab1:
         "continuous steering, gas, and brake commands."
     )
 
-    best_candidates = [
-        ASSETS / "best_lap.gif",
-        ASSETS / "best_agent.gif",
-        ASSETS / "hero.gif",
-        ASSETS / "best_eval.gif",
-    ]
+    best_candidates = [ASSETS / "best_lap.gif", ASSETS / "best_agent.gif"]
     shown = False
     for c in best_candidates:
         if c.exists():
@@ -144,14 +139,13 @@ with tab1:
             )
             break
 
-    st.markdown("---")
-    st.markdown("### Highlight clip")
-    for hc in [ASSETS / "demo_clip.gif", ASSETS / "highlight.gif"]:
-        if hc.exists():
-            show_gif(
-                str(hc), caption="10-second highlight \u2014 smoothest segment", width=500
-            )
-            break
+    demo_clip = ASSETS / "demo_clip.gif"
+    if demo_clip.exists():
+        st.markdown("---")
+        st.markdown("### Highlight clip")
+        show_gif(
+            str(demo_clip), caption="10-second highlight \u2014 smoothest segment", width=500
+        )
 
 # ── TAB 2: TRAINING ──────────────────────────────────────────────────────────
 

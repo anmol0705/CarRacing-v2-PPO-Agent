@@ -7,9 +7,7 @@ __pycache__/
 *.pt
 *.pyc
 .env
-assets/*.mp4
-assets/step_*.gif
 *.egg-info/
 dist/
 .DS_Store
-tea_debug.log
+.claude_hooks/
