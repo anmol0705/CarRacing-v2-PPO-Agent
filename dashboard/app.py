@@ -107,20 +107,28 @@ tab1, tab2, tab3, tab4 = st.tabs(
 with tab1:
     st.markdown("### Best agent \u2014 full lap")
     st.markdown(
-        "Best checkpoint (step 4.9M, eval reward **811.9**). "
-        "The agent receives 4 stacked 84\u00d784 grayscale frames and outputs "
-        "continuous steering, gas, and brake commands."
+        "Best episode cherry-picked from 18 trials across top checkpoints. "
+        "Deterministic policy (mean action, no sampling) \u2014 "
+        "reward **928**, completed in 716 steps."
     )
 
-    best_candidates = [ASSETS / "best_lap.gif", ASSETS / "best_agent.gif"]
+    best_candidates = [
+        ASSETS / "showcase.gif",
+        ASSETS / "best_lap.gif",
+        ASSETS / "best_agent.gif",
+    ]
     shown = False
     for c in best_candidates:
         if c.exists():
-            show_gif(str(c), caption=f"Best agent \u00b7 {c.name}", width=680)
+            show_gif(
+                str(c),
+                caption="Best episode \u2014 deterministic policy, seed selected from 18 trials",
+                width=680,
+            )
             shown = True
             break
     if not shown:
-        st.info("best_lap.gif not found \u2014 run scripts/record_best.py on EC2")
+        st.info("showcase.gif not found \u2014 run scripts/record_showcase.py on EC2")
 
     st.markdown("---")
     st.markdown("### Learning progression")
