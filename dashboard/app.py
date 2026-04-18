@@ -217,7 +217,7 @@ with tab2:
                 height=360,
                 margin=dict(l=50, r=30, t=50, b=50),
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
             cols_available = []
             if entropy_col:
@@ -246,7 +246,7 @@ with tab2:
                     height=280,
                     margin=dict(l=50, r=30, t=50, b=50),
                 )
-                st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig2, width="stretch")
         else:
             st.write("Columns found:", list(df.columns))
             st.dataframe(df.head(20))
@@ -276,7 +276,7 @@ with tab2:
             "NVIDIA T4 GPU",
         ],
     }
-    st.dataframe(pd.DataFrame(results), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(results), width="stretch", hide_index=True)
 
 # ── TAB 3: ARCHITECTURE ─────────────────────────────────────────────────────
 
@@ -322,7 +322,7 @@ with tab3:
                 ],
             }
         )
-        st.dataframe(arch, use_container_width=True, hide_index=True)
+        st.dataframe(arch, width="stretch", hide_index=True)
 
         st.markdown("**Actor & critic heads** (shared backbone)")
         heads = pd.DataFrame(
@@ -336,7 +336,7 @@ with tab3:
                 ],
             }
         )
-        st.dataframe(heads, use_container_width=True, hide_index=True)
+        st.dataframe(heads, width="stretch", hide_index=True)
 
     with c2:
         st.markdown("**Hyperparameters**")
@@ -374,7 +374,7 @@ with tab3:
                 ],
             }
         )
-        st.dataframe(hp, use_container_width=True, hide_index=True)
+        st.dataframe(hp, width="stretch", hide_index=True)
 
     st.markdown("---")
     st.markdown("### Why these choices?")
@@ -465,7 +465,7 @@ only raw pixel observations.
             ],
         }
     )
-    st.dataframe(timeline, use_container_width=True, hide_index=True)
+    st.dataframe(timeline, width="stretch", hide_index=True)
 
     st.markdown("---")
     col1, col2 = st.columns(2)
