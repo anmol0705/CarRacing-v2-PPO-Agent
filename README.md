@@ -1,12 +1,13 @@
-# CarRacing-v2 PPO Agent
+# PPO for Autonomous Driving
+## CarRacing-v2 · Highway · Roundabout · Parking
 
 <p align="center">
-  <img src="assets/best_agent.gif" alt="Trained PPO agent completing a full lap" width="600">
+  <img src="assets/showcase.gif" alt="PPO agent driving CarRacing-v2" width="600">
   <br>
-  <em>PPO agent scoring 928 — completing a full lap after 5M training steps</em>
+  <em>PPO agent scoring 940 on CarRacing-v2 — full lap in 596 steps</em>
 </p>
 
-A **from-scratch PPO implementation** that learns to drive in OpenAI Gymnasium's CarRacing-v2 from raw pixels. No pretrained models, no Stable-Baselines3 — just PyTorch, a CNN, and 5 million frames of practice.
+A **from-scratch PPO implementation** applied to four autonomous driving environments: circuit racing from raw pixels, highway overtaking, roundabout navigation, and autonomous parking. No pretrained models, no Stable-Baselines3 — just PyTorch and reinforcement learning.
 
 ---
 

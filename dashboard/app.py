@@ -178,14 +178,15 @@ def load_best_info() -> dict:
 # ── Hero ───────────────────────────────────────────────────────────────────
 
 st.markdown(
-    '<h1 class="hero-title">CarRacing-v2 PPO Agent</h1>',
+    '<h1 class="hero-title">PPO for Autonomous Driving</h1>',
     unsafe_allow_html=True,
 )
 st.markdown(
     '<p class="hero-sub">'
-    "A deep reinforcement learning agent trained to drive from raw pixels "
-    "\u2014 no GPS, no map, no hand-coded rules. Implemented PPO from scratch "
-    "in PyTorch and trained over 5M environment steps on AWS EC2."
+    "Proximal Policy Optimisation implemented from scratch in PyTorch, "
+    "applied to four autonomous driving challenges: circuit racing, "
+    "highway overtaking, roundabout navigation, and autonomous parking. "
+    "No GPS, no map \u2014 raw observations only."
     "</p>",
     unsafe_allow_html=True,
 )
@@ -233,8 +234,8 @@ st.markdown(
 
 # ── Tabs ───────────────────────────────────────────────────────────────────
 
-tab_demo, tab_train, tab_arch, tab_about = st.tabs(
-    ["  Demo  ", "  Training  ", "  Architecture  ", "  About  "]
+tab_demo, tab_highway, tab_train, tab_arch, tab_about = st.tabs(
+    ["  CarRacing  ", "  Highway Scenarios  ", "  Training  ", "  Architecture  ", "  About  "]
 )
 
 # ══════════════════════════════════════════════════════════════════
@@ -360,6 +361,128 @@ with tab_demo:
     ]:
         if show_gif(candidate, css_width="100%"):
             break
+
+# ══════════════════════════════════════════════════════════════════
+# TAB: HIGHWAY SCENARIOS
+# ══════════════════════════════════════════════════════════════════
+with tab_highway:
+    st.markdown(
+        '<div class="sec-header">Autonomous driving scenarios</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "The same PPO algorithm applied to three autonomous driving "
+        "tasks from **highway-env** \u2014 a library used in AV research. "
+        "Each scenario tests a different driving competency.",
+    )
+
+    hw_results = {}
+    hw_results_path = ASSETS / "highway_results.json"
+    hw_demo_path = ASSETS / "highway_demo_results.json"
+    if hw_results_path.exists():
+        with open(hw_results_path) as f:
+            hw_results = json.load(f)
+    if hw_demo_path.exists():
+        with open(hw_demo_path) as f:
+            hw_results.update(json.load(f))
+
+    c1, c2, c3 = st.columns(3, gap="medium")
+    hw_scenarios = [
+        {
+            "col": c1,
+            "title": "Highway Overtaking",
+            "env": "highway-v0",
+            "gif": "assets/highway_demo.gif",
+            "desc": (
+                "Navigate a 4-lane highway, overtake slower vehicles, "
+                "maintain high speed without collisions."
+            ),
+            "action": "Discrete \u2014 IDLE / FASTER / SLOWER / LEFT / RIGHT",
+            "obs": "Kinematics of 10 nearest vehicles",
+            "color": "#3B8BD4",
+        },
+        {
+            "col": c2,
+            "title": "Roundabout Navigation",
+            "env": "roundabout-v0",
+            "gif": "assets/roundabout_demo.gif",
+            "desc": (
+                "Enter a roundabout, navigate around other vehicles, "
+                "exit without collisions."
+            ),
+            "action": "Discrete \u2014 MetaAction (5 actions)",
+            "obs": "Kinematics of 10 nearest vehicles",
+            "color": "#1D9E75",
+        },
+        {
+            "col": c3,
+            "title": "Autonomous Parking",
+            "env": "parking-v0",
+            "gif": "assets/parking_demo.gif",
+            "desc": (
+                "Goal-conditioned task \u2014 park in a specific spot "
+                "among other vehicles. Sparse reward."
+            ),
+            "action": "Continuous \u2014 steering + acceleration",
+            "obs": "Kinematics + goal position (18-dim)",
+            "color": "#BA7517",
+        },
+    ]
+
+    for s in hw_scenarios:
+        with s["col"]:
+            st.markdown(
+                f'<div style="border-top:2px solid {s["color"]};'
+                f'padding-top:10px;margin-bottom:10px">'
+                f'<p style="font-size:.67rem;font-weight:700;'
+                f'letter-spacing:.1em;text-transform:uppercase;'
+                f'color:{s["color"]};margin:0 0 4px">{s["title"]}</p>'
+                f'<p style="font-size:.8rem;color:#888;'
+                f'line-height:1.6;margin:0">{s["desc"]}</p>'
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+            show_gif(s["gif"], css_width="100%")
+            r = hw_results.get(s["env"])
+            if isinstance(r, dict):
+                best_r = r.get("best_reward")
+            else:
+                best_r = r
+            if best_r is not None:
+                st.markdown(
+                    f'<p style="font-size:.75rem;color:#888;margin:6px 0 2px">'
+                    f"Best reward</p>"
+                    f'<p style="font-size:1.3rem;font-weight:700;'
+                    f'color:{s["color"]};margin:0">{best_r:.1f}</p>',
+                    unsafe_allow_html=True,
+                )
+            st.markdown(
+                f'<p style="font-size:.7rem;color:#666;margin:8px 0 2px">Actions</p>'
+                f'<p style="font-size:.75rem;color:#aaa;margin:0">{s["action"]}</p>'
+                f'<p style="font-size:.7rem;color:#666;margin:8px 0 2px">Observation</p>'
+                f'<p style="font-size:.75rem;color:#aaa;margin:0">{s["obs"]}</p>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("---")
+    col_l, col_r = st.columns(2, gap="large")
+    with col_l:
+        st.markdown("#### Same algorithm, harder problems")
+        st.markdown(
+            "The same PPO implementation that trained the CarRacing agent works "
+            "here with minimal changes \u2014 demonstrating that the algorithm generalises "
+            "across pixel vs kinematics observations, continuous vs discrete actions, "
+            "and dense vs sparse rewards."
+        )
+    with col_r:
+        comparison = pd.DataFrame(
+            {
+                "Property": ["Observation", "Action space", "Reward", "Other agents", "Train time"],
+                "CarRacing": ["4\u00d784\u00d784 pixels", "Continuous", "Dense", "None", "~10 hours"],
+                "Highway": ["10\u00d75 kinematics", "Discrete / Both", "Dense / Sparse", "Yes \u2014 traffic", "~3 hours"],
+            }
+        )
+        st.dataframe(comparison, hide_index=True, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════
 # TAB 2 \u2014 TRAINING
