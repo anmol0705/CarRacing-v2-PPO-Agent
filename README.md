@@ -191,8 +191,7 @@ carracing-ppo/
 │   ├── training_metrics.csv      # Parsed training curves
 │   └── eval_metrics.csv          # Evaluation results over training
 ├── tests/                        # Phase verification scripts
-├── BUILD_LOG.txt                 # Detailed build + training log
-└── CLAUDE.md                     # Build specification
+└── BUILD_LOG.txt                 # Detailed build + training log
 ```
 
 ---
