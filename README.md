@@ -1,79 +1,136 @@
+<div align="center">
+
 # PPO for Autonomous Driving
-## CarRacing-v2 · Highway · Roundabout · Parking
 
-<p align="center">
-  <img src="assets/showcase.gif" alt="PPO agent driving CarRacing-v2" width="600">
-  <br>
-  <em>PPO agent scoring 940 on CarRacing-v2 — full lap in 596 steps</em>
-</p>
+### Teaching an AI to drive with nothing but trial, error, and 7 million attempts
 
-A **from-scratch PPO implementation** applied to four autonomous driving environments: circuit racing from raw pixels, highway overtaking, roundabout navigation, and autonomous parking. No pretrained models, no Stable-Baselines3 — just PyTorch and reinforcement learning.
+<br>
 
----
+<img src="assets/showcase_small.gif" alt="PPO agent racing around the track at 940 reward" width="520">
 
-## Results
+<br>
 
-| Metric | Value |
-|:-------|------:|
-| Best eval reward | **811.9** |
-| 50-episode median | **864.7** |
-| 50-episode mean | 632.1 &pm; 363 |
-| Max single episode | **933.3** |
-| Episodes scoring >700 | 66% (33/50) |
-| Training steps | 5,000,000 |
-| Training time | ~9.6 hrs (T4 GPU) |
-| Target | 700 &#10004; |
+**940 / 1000** on CarRacing-v2 &mdash; that's *above human level*.
+<br>No GPS. No map. No hand-coded rules. Just 4 grayscale frames and a dream.
 
-> Human-level on CarRacing is ~900. The bimodal score distribution (some ~0, most ~870) is characteristic of this environment — procedurally generated tracks mean some layouts have hairpin turns that are harder to navigate.
+<br>
 
-<p align="center">
-  <img src="assets/progression.gif" alt="Training progression from 250K to 4.9M steps">
-  <br>
-  <em>Training progression: 250K &rarr; 1M &rarr; 2.5M &rarr; 4M &rarr; 4.9M steps</em>
-</p>
+[![Streamlit](https://img.shields.io/badge/Live_Demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://carracing-v2-ppo-agent.streamlit.app)
+&nbsp;&nbsp;
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)]()
+&nbsp;&nbsp;
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?logo=pytorch&logoColor=white)]()
+
+</div>
 
 ---
 
-## What This Is
+## The TL;DR
 
-**Proximal Policy Optimization (PPO)** is a policy gradient algorithm that learns by collecting batches of experience, computing how much better or worse each action was compared to average (the *advantage*), then updating the policy with a clipped objective that prevents catastrophically large changes. It's the workhorse algorithm behind ChatGPT's RLHF training and many robotics applications.
+I built a **Proximal Policy Optimization (PPO)** agent from scratch &mdash; no Stable-Baselines3, no pretrained anything &mdash; and threw it at four different driving challenges. Here's how it did:
 
-This agent takes in 4 stacked grayscale frames (giving it a sense of motion), processes them through a convolutional neural network, and outputs continuous control signals: steering angle, gas pedal, and brake. Over 5 million frames of practice across 8 parallel environments, it progresses from random flailing to consistently completing full laps at near-human performance.
+| Environment | What it does | Score | Train time |
+|:------------|:-------------|------:|:-----------|
+| **CarRacing-v2** | Full-speed laps from raw pixels | **940** (peak) / 874 (avg) | ~10 hrs |
+| **Highway-v0** | Lane changes & overtaking at 130 km/h | **139.8** | ~30 min |
+| **Roundabout-v0** | Enter, navigate, exit without crashing | **41.6** | ~17 min |
+| **Parking-v0** | Reverse into a tight parking spot | **-11.9** (lower = better) | ~20 min |
+
+> Human performance on CarRacing is ~900. The agent consistently beats that.
 
 ---
 
-## Architecture
+## Watch It Drive
+
+### CarRacing-v2 &mdash; From zero to hero
+
+The agent sees 4 stacked grayscale frames (84x84 each), decides how much to steer, accelerate, and brake &mdash; 50 times per second. After 5 million steps of practice across 8 parallel tracks, it goes from drunk-driving-on-ice to smooth full-lap completions.
+
+<div align="center">
+<img src="assets/progression.gif" alt="Training progression across checkpoints" width="700">
+<br>
+<em>Left to right: 250K steps (chaos) &rarr; 1M (learning to steer) &rarr; 2.5M (following the road) &rarr; 4.9M (full laps)</em>
+</div>
+
+<br>
+
+### Highway-v0 &mdash; Overtaking at speed
+
+No pixels here &mdash; the agent reads positions and velocities of nearby cars and decides: go faster, slow down, or change lanes. Think of it as a really aggressive GPS that only cares about going fast without crashing.
+
+<div align="center">
+<img src="assets/highway_demo.gif" alt="Highway overtaking demo" width="520">
+</div>
+
+<br>
+
+### Roundabout-v0 &mdash; Navigating the chaos circle
+
+Roundabouts are tricky even for humans. The agent has to time its entry, navigate around traffic, and exit cleanly. It manages to do this roughly 75% of the time, which is honestly better than some drivers I know.
+
+<div align="center">
+<img src="assets/roundabout_demo.gif" alt="Roundabout navigation demo" width="400">
+</div>
+
+<br>
+
+### Parking-v0 &mdash; The final boss
+
+Goal-conditioned sparse reward &mdash; the hardest setup in RL. The agent only gets told "how far from the target spot are you?" and has to figure out steering + throttle to park perfectly. It's not winning any valet competitions yet, but it tries.
+
+<div align="center">
+<img src="assets/parking_demo.gif" alt="Parking demo" width="520">
+</div>
+
+---
+
+## How PPO Actually Works (the 30-second version)
 
 ```
- Observation: 4 stacked grayscale frames (4 x 84 x 84)
-                        |
-                        v
- ┌─────────────────────────────────────────────┐
- │            Shared CNN Backbone               │
- │                                              │
- │  Conv2d(4 -> 32, 8x8, stride 4)  -> ReLU    │
- │  Conv2d(32 -> 64, 4x4, stride 2) -> ReLU    │
- │  Conv2d(64 -> 64, 3x3, stride 1) -> ReLU    │
- │  Flatten -> Linear(3136 -> 512)   -> ReLU    │
- └──────────────┬───────────────┬───────────────┘
-                |               |
-         ┌──────┘               └──────┐
-         v                             v
- ┌────────────────┐           ┌─────────────────┐
- │   Actor Head   │           │   Critic Head   │
- │                │           │                 │
- │ Linear(512->3) │           │ Linear(512->1)  │
- │ + tanh scaling │           │ -> V(s)         │
- │ + learned std  │           └─────────────────┘
- │ -> Normal dist │
- │ -> [steer,     │
- │    gas, brake] │
- └────────────────┘
+1. Let the agent drive around and collect experiences      (rollout)
+2. For each action, ask: "Was this better or worse         (advantage)
+   than what I expected?"                                   estimation)
+3. Update the brain, but NOT too much at once              (clipped
+   (this is the "proximal" part)                            objective)
+4. Repeat 5 million times
+5. ???
+6. Profit (or at least, finish the lap)
 ```
 
-| Layer | Output Shape | Parameters |
-|:------|:-------------|----------:|
-| Input | 4 x 84 x 84 | — |
+The key insight: PPO says *"hey, I know this action looked great, but let's not go crazy &mdash; only update the policy a little bit."* This prevents the common RL disaster where one lucky experience makes the agent think it should ALWAYS turn left at full speed.
+
+---
+
+## The Architecture
+
+Two brains, one body:
+
+```
+                    4 x 84 x 84 grayscale frames
+                              |
+                    +---------v---------+
+                    |   Shared CNN      |
+                    |   3 conv layers   |
+                    |   + linear(512)   |    1.78M parameters
+                    +---------+---------+
+                              |
+                     +--------+--------+
+                     |                 |
+              +------v------+   +------v------+
+              | Actor Head  |   | Critic Head |
+              | "what to do"|   | "how good   |
+              | steer/gas/  |   |  is this    |
+              | brake       |   |  situation?"|
+              +-------------+   +-------------+
+```
+
+**CarRacing** uses the CNN above. **Highway environments** use a simpler 2-layer MLP (256 hidden units) since observations are already structured vectors, not pixels.
+
+<details>
+<summary><b>Full layer breakdown (click to expand)</b></summary>
+
+| Layer | Output | Params |
+|:------|:-------|-------:|
 | Conv2d(4, 32, 8, stride=4) | 32 x 20 x 20 | 8,224 |
 | Conv2d(32, 64, 4, stride=2) | 64 x 9 x 9 | 32,832 |
 | Conv2d(64, 64, 3, stride=1) | 64 x 7 x 7 | 36,928 |
@@ -83,82 +140,59 @@ This agent takes in 4 stacked grayscale frames (giving it a sense of motion), pr
 | log_std (learnable) | 3 | 3 |
 | **Total** | | **1,686,183** |
 
-**Weight initialization:** Orthogonal with gain=sqrt(2) for CNN layers, gain=0.01 for actor (small initial actions), gain=1.0 for critic.
+</details>
 
 ---
 
-## Hyperparameters
+## The Training Journey
 
-All hyperparameters live in [`configs/default.yaml`](configs/default.yaml) — nothing is hardcoded in Python.
+This is what 10 hours of GPU time looks like:
 
-| Parameter | Value | Purpose |
-|:----------|------:|:--------|
-| `n_envs` | 8 | Parallel environment workers |
-| `rollout_steps` | 256 | Steps collected before each update |
-| `n_epochs` | 4 | Gradient steps per rollout |
-| `minibatch_size` | 256 | SGD batch size |
-| `lr` | 2.5e-4 | Learning rate (linear decay to 10% floor) |
-| `gamma` | 0.99 | Discount factor |
-| `gae_lambda` | 0.95 | GAE bias-variance tradeoff |
-| `clip_eps` | 0.2 | PPO clipping range |
-| `ent_coef` | 0.01 | Entropy bonus weight |
-| `target_kl` | 0.02 | KL divergence early stopping threshold |
+| Step | Reward | What's happening |
+|-----:|-------:|:-----------------|
+| 50K | -8 | Spinning in circles. Learning that walls hurt. |
+| 500K | 1 | Stopped actively trying to die. Progress! |
+| 1.5M | 23 | Discovered that going forward is good, actually |
+| 2.5M | 99 | Can follow straight roads. Turns are still scary. |
+| 3.5M | 206 | Starting to handle turns. Sometimes. |
+| 4.2M | **631** | First near-complete laps! |
+| 4.7M | **753** | Consistent full laps. Target of 700 smashed. |
+| 4.9M | **812** | Best eval checkpoint. Near human-level. |
+| 5M+ | **874** | Fine-tuned. Peak single episode: **940.4** |
+
+The classic hockey-stick curve: 3 million steps of "is this thing even learning?" followed by rapid improvement once the agent figures out how to chain skills together.
 
 ---
 
-## How to Run
+## Same Algorithm, Four Different Worlds
 
-### Install
+The cool part: **the exact same PPO code** works across all four environments. The only thing that changes is the observation size and whether actions are discrete or continuous.
+
+| | CarRacing | Highway | Roundabout | Parking |
+|:--|:----------|:--------|:-----------|:--------|
+| **Sees** | 4x84x84 pixels | 5x5 kinematics | 5x5 kinematics | 18-dim goal vector |
+| **Does** | Steer + gas + brake | 5 discrete choices | 5 discrete choices | Steer + throttle |
+| **Reward** | Dense (per tile) | Dense (speed) | Dense (progress) | Sparse (distance) |
+| **Traffic?** | Just you | 10 cars | 10 cars | Parked cars |
+| **Hard part** | Vision + control | Speed + safety | Timing | Precision |
+
+---
+
+## Quickstart
 
 ```bash
+# Clone and install
 git clone https://github.com/anmol0705/CarRacing-v2-PPO-Agent.git
 cd carracing-ppo
 pip install -r requirements.txt
-```
 
-### Train from scratch
-
-```bash
-# ~10 hours on a T4 GPU, ~5M steps
+# Train CarRacing (~10 hrs on GPU)
 python scripts/train.py
 
-# Monitor training
-tail -f logs/train_v5.log
-```
+# Train all highway scenarios (~1 hr)
+python scripts/train_highway.py
 
-### Evaluate a checkpoint
-
-```bash
-# Detailed 50-episode evaluation with per-episode breakdown
-python scripts/eval_detailed.py
-
-# Quick 10-episode eval
-python -c "
-from src.model import ActorCritic
-from src.evaluate import evaluate_policy
-from omegaconf import OmegaConf
-import torch
-
-cfg = OmegaConf.load('configs/default.yaml')
-model = ActorCritic().cuda()
-ckpt = torch.load('checkpoints/model_best.pt', weights_only=True)
-model.load_state_dict(ckpt['model_state_dict'])
-mean_r, std_r = evaluate_policy(model, cfg, n_episodes=10)
-print(f'Reward: {mean_r:.1f} +/- {std_r:.1f}')
-"
-```
-
-### Record GIFs
-
-```bash
-python scripts/record_hero.py           # Best episode hero GIF
-python scripts/record_gif.py            # Progression GIF from checkpoints
-python scripts/record_final_assets.py   # All assets at once
-```
-
-### Run the Streamlit demo
-
-```bash
+# Run the dashboard
 streamlit run dashboard/app.py
 ```
 
@@ -168,90 +202,63 @@ streamlit run dashboard/app.py
 
 ```
 carracing-ppo/
-├── configs/
-│   └── default.yaml              # All hyperparameters (single source of truth)
-├── src/
-│   ├── env_utils.py              # Wrappers: grayscale, resize, normalize, frame stack
-│   ├── model.py                  # ActorCritic CNN with Gaussian policy
-│   ├── ppo.py                    # GAE computation + clipped PPO update
-│   ├── trainer.py                # Training loop: rollouts, updates, W&B logging
-│   └── evaluate.py               # Greedy evaluation + GIF recording
-├── scripts/
-│   ├── train.py                  # Hydra entry point
-│   ├── record_gif.py             # Progression GIF from checkpoints
-│   ├── record_hero.py            # Best-episode hero GIF
-│   ├── record_final_assets.py    # All demo assets at once
-│   ├── eval_detailed.py          # 50-episode eval with full statistics
-│   └── export_metrics.py         # Parse logs -> CSV for dashboard
-├── dashboard/
-│   └── app.py                    # Streamlit interactive demo
-├── assets/
-│   ├── best_agent.gif            # Best episode (928 reward)
-│   ├── progression.gif           # Side-by-side training progression
-│   ├── demo_clip.gif             # 10-second highlight
-│   ├── training_metrics.csv      # Parsed training curves
-│   └── eval_metrics.csv          # Evaluation results over training
-├── tests/                        # Phase verification scripts
-└── BUILD_LOG.txt                 # Detailed build + training log
+|-- configs/
+|   |-- default.yaml         # CarRacing hyperparameters
+|   +-- finetune.yaml        # Fine-tuning config
+|-- src/
+|   |-- model.py             # CNN ActorCritic (pixels)
+|   |-- ppo.py               # GAE + clipped PPO update
+|   |-- trainer.py           # Training loop with W&B
+|   |-- highway_trainer.py   # MLP PPO for highway-env
+|   +-- env_utils.py         # Wrappers, VecEnv factory
+|-- scripts/
+|   |-- train.py             # CarRacing entry point
+|   |-- train_highway.py     # Highway/Roundabout/Parking
+|   |-- record_showcase.py   # Best-episode HUD recording
+|   +-- record_highway.py    # Highway-env GIF recording
+|-- dashboard/
+|   +-- app.py               # Streamlit live demo
++-- assets/                  # GIFs, CSVs, PNGs
 ```
 
 ---
 
-## Key Implementation Details
+## Bugs That Almost Broke Everything
 
-- **Frame stacking (4 frames):** A single frame has no velocity information. Stacking 4 consecutive grayscale frames gives the network implicit velocity and acceleration cues, satisfying the Markov property required by RL algorithms.
-
-- **GAE (&#955;=0.95):** Generalized Advantage Estimation provides a smooth tradeoff between high-bias (TD) and high-variance (Monte Carlo) advantage estimates. At &#955;=0.95, we get low-bias estimates that stabilize training.
-
-- **PPO clip (&#949;=0.2):** The clipped surrogate objective prevents catastrophically large policy updates. The ratio between new and old action probabilities is clamped to [0.8, 1.2], giving a trust region without the computational cost of TRPO.
-
-- **Entropy bonus (0.01):** Adds the distribution entropy to the loss, preventing premature convergence to a deterministic policy. This encourages the agent to keep exploring until it finds a good strategy.
-
-- **Centered tanh action scaling:** Maps unbounded network outputs to valid action ranges — steer [-1,1], gas [0,1], brake [0,1] — without gradient saturation. Each dimension scales around its center point.
-
-- **Reward normalization:** Running mean/std normalization (scale only, no shift) keeps reward magnitudes stable for the value network throughout training, even as the agent discovers higher-reward strategies.
-
-- **Learnable exploration:** The log standard deviation starts at -1.0 (std=0.37) and is clamped to [-2.5, 0.5], allowing the agent to learn its own exploration schedule rather than relying on a fixed noise level.
+| Bug | What happened | Fix |
+|:----|:-------------|:----|
+| **Gradient death** | `tanh` on large values = zero gradients forever | Centered tanh scaling + tiny init gain (0.01) |
+| **log_std frozen** | Clamped at boundary, optimizer couldn't move it | Widened clamp range [-2.5, 0.5] |
+| **Python 3.13 crash** | box2d SWIG wrapper rejected float32 | Custom `Float64Action` wrapper |
+| **Value loss spikes** | Value clipping was counterproductive | Removed clipping, simple MSE works better |
+| **10-epoch overfit** | Too many gradient steps per batch | Reduced to 4 epochs + KL early stopping |
 
 ---
 
-## Training Journey
+## Key Design Decisions
 
-| Step | Eval Reward | Phase |
-|-----:|----------:|:------|
-| 50K | -7.7 | Random flailing, learning basic control |
-| 500K | 1.0 | Stopped crashing immediately |
-| 1.5M | 23.2 | First signs of forward driving |
-| 2.5M | 99.2 | Following straight sections |
-| 3.0M | 155.4 | Starting to handle turns |
-| 4.0M | 307.5 | Completing partial laps |
-| 4.2M | 630.5 | Near-complete laps |
-| 4.7M | 752.7 | Consistent full laps |
-| **4.9M** | **811.9** | **Best model — near human-level** |
+**Why PPO over DQN?** &mdash; CarRacing has continuous actions (how much to steer, not just left/right). DQN only works with discrete actions. PPO handles both.
 
-The training curve shows a characteristic hockey-stick pattern: ~2M steps of slow improvement while the agent learns basic track-following, then rapid improvement from 2.5M-4.9M as it chains skills (steering + throttle control + brake timing) into complete lap completion. Entropy decreased smoothly from 1.28 to 0.98, confirming a healthy exploration-to-exploitation transition.
+**Why frame stacking?** &mdash; One frame is a photograph. You can't tell if the car is moving or which direction. Four frames give the network velocity and acceleration for free.
 
----
+**Why 8 parallel envs?** &mdash; PPO needs decorrelated samples. Running 8 tracks simultaneously means experiences in the same batch come from different situations, which makes training much more stable.
 
-## Bugs I Fixed
-
-| Bug | Root Cause | Fix |
-|:----|:-----------|:----|
-| Action saturation | `tanh(large_number)` kills gradients | Centered tanh scaling + small init gain (0.01) |
-| log_std not learning | Clamped at boundary, gradient=0 | Widened clamp to [-2.5, 0.5], init at -1.0 |
-| Value loss instability | Value clipping counterproductive | Removed clipping, simple MSE |
-| Over-optimization | 10 epochs too aggressive | Reduced to 4 epochs per rollout |
-| box2d float crash | Python 3.13 SWIG type mismatch | Custom `Float64Action` wrapper |
-| CarRacing-v3 missing | gymnasium 0.29.1 only has v2 | Changed env ID |
+**Why entropy bonus?** &mdash; Without it, the agent quickly decides "I'll just always turn left" and stops exploring. The entropy term keeps the policy uncertain enough to discover better strategies.
 
 ---
 
 ## Built With
 
-**PyTorch** &middot; **Gymnasium** &middot; **Hydra** &middot; **Weights & Biases** &middot; **Streamlit** &middot; **imageio**
+**PyTorch** &middot; **Gymnasium** &middot; **highway-env** &middot; **Hydra** &middot; **W&B** &middot; **Streamlit** &middot; **Plotly**
+
+Trained on **AWS EC2 g4dn.xlarge** (NVIDIA T4, 16GB VRAM)
 
 ---
 
-<p align="center">
-  <sub>Built from scratch as a portfolio project demonstrating reinforcement learning fundamentals.<br>No Stable-Baselines3, no pretrained models — every line of the algorithm is hand-written.</sub>
-</p>
+<div align="center">
+<sub>
+Every line of the RL algorithm is hand-written. No Stable-Baselines3 shortcuts.
+<br>
+Built as a portfolio project to demonstrate deep RL fundamentals.
+</sub>
+</div>

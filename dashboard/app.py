@@ -14,7 +14,7 @@ import streamlit as st
 from PIL import Image
 
 st.set_page_config(
-    page_title="CarRacing-v2 PPO Agent",
+    page_title="PPO for Autonomous Driving",
     page_icon="\U0001f3ce",
     layout="wide",
     initial_sidebar_state="collapsed",
