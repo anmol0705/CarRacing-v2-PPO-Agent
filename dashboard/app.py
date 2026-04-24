@@ -398,7 +398,7 @@ with tab_highway:
                 "maintain high speed without collisions."
             ),
             "action": "Discrete \u2014 IDLE / FASTER / SLOWER / LEFT / RIGHT",
-            "obs": "Kinematics of 10 nearest vehicles",
+            "obs": "Kinematics of 5 nearest vehicles",
             "color": "#3B8BD4",
         },
         {
@@ -411,7 +411,7 @@ with tab_highway:
                 "exit without collisions."
             ),
             "action": "Discrete \u2014 MetaAction (5 actions)",
-            "obs": "Kinematics of 10 nearest vehicles",
+            "obs": "Kinematics of 5 nearest vehicles",
             "color": "#1D9E75",
         },
         {

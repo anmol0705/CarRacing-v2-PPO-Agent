@@ -54,27 +54,31 @@ ENV_CONFIGS = {
     "highway-v0": {
         "observation": {
             "type": "Kinematics",
-            "vehicles_count": 10,
+            "vehicles_count": 5,
             "features": ["presence", "x", "y", "vx", "vy"],
             "normalize": True,
             "absolute": False,
         },
         "action": {"type": "DiscreteMetaAction"},
         "lanes_count": 4,
-        "vehicles_count": 20,
+        "vehicles_count": 10,
         "duration": 40,
         "reward_speed_range": [20, 30],
+        "simulation_frequency": 5,
+        "policy_frequency": 5,
     },
     "roundabout-v0": {
         "observation": {
             "type": "Kinematics",
-            "vehicles_count": 10,
+            "vehicles_count": 5,
             "features": ["presence", "x", "y", "vx", "vy"],
             "normalize": True,
             "absolute": False,
         },
         "action": {"type": "DiscreteMetaAction"},
         "duration": 11,
+        "simulation_frequency": 5,
+        "policy_frequency": 5,
     },
     "parking-v0": {
         "observation": {
