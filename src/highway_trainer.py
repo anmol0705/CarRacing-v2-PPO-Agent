@@ -64,7 +64,7 @@ ENV_CONFIGS = {
         "vehicles_count": 10,
         "duration": 40,
         "reward_speed_range": [20, 30],
-        "simulation_frequency": 5,
+        "simulation_frequency": 15,
         "policy_frequency": 5,
     },
     "roundabout-v0": {
@@ -76,8 +76,8 @@ ENV_CONFIGS = {
             "absolute": False,
         },
         "action": {"type": "DiscreteMetaAction"},
-        "duration": 11,
-        "simulation_frequency": 5,
+        "duration": 15,
+        "simulation_frequency": 15,
         "policy_frequency": 5,
     },
     "parking-v0": {
@@ -88,8 +88,9 @@ ENV_CONFIGS = {
             "normalize": False,
         },
         "action": {"type": "ContinuousAction"},
-        "duration": 100,
+        "duration": 200,
         "simulation_frequency": 15,
+        "policy_frequency": 5,
     },
 }
 

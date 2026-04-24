@@ -32,9 +32,9 @@ I built a **Proximal Policy Optimization (PPO)** agent from scratch &mdash; no S
 | Environment | What it does | Score | Train time |
 |:------------|:-------------|------:|:-----------|
 | **CarRacing-v2** | Full-speed laps from raw pixels | **940** (peak) / 874 (avg) | ~10 hrs |
-| **Highway-v0** | Lane changes & overtaking at 130 km/h | **139.8** | ~30 min |
-| **Roundabout-v0** | Enter, navigate, exit without crashing | **41.6** | ~17 min |
-| **Parking-v0** | Reverse into a tight parking spot | **-11.9** (lower = better) | ~20 min |
+| **Highway-v0** | Lane changes & overtaking at 130 km/h | **146.9** | ~2.3 hrs |
+| **Roundabout-v0** | Enter, navigate, exit without crashing | **41.1** | ~1.1 hrs |
+| **Parking-v0** | Reverse into a tight parking spot | **-12.3** (closer to 0 = better) | ~1.1 hrs |
 
 > Human performance on CarRacing is ~900. The agent consistently beats that.
 

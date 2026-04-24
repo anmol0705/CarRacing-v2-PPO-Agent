@@ -25,24 +25,27 @@ SCENARIOS = [
         "ckpt": "checkpoints/highway/best.pt",
         "out": "assets/highway_demo.gif",
         "label": "Highway Overtaking",
-        "episodes": 5,
+        "episodes": 10,
         "max_steps": 400,
+        "min_frames": 150,
     },
     {
         "env_name": "roundabout-v0",
         "ckpt": "checkpoints/roundabout/best.pt",
         "out": "assets/roundabout_demo.gif",
         "label": "Roundabout Navigation",
-        "episodes": 5,
+        "episodes": 15,
         "max_steps": 300,
+        "min_frames": 100,
     },
     {
         "env_name": "parking-v0",
         "ckpt": "checkpoints/parking/best.pt",
         "out": "assets/parking_demo.gif",
         "label": "Autonomous Parking",
-        "episodes": 5,
-        "max_steps": 400,
+        "episodes": 20,
+        "max_steps": 600,
+        "min_frames": 100,
     },
 ]
 
@@ -65,10 +68,32 @@ def load_model(ckpt_path: str, env_name: str) -> tuple:
     return model, discrete
 
 
+def run_episode(model, env_name: str, discrete: bool, seed: int, max_steps: int):
+    """Run one episode, return (frames, reward)."""
+    env = make_highway_env(env_name, seed=seed, render=True)
+    obs, _ = env.reset(seed=seed)
+    frames, total_r = [], 0.0
+    for _ in range(max_steps):
+        obs_t = torch.FloatTensor(preprocess_obs(obs, env_name)).unsqueeze(0).to(DEVICE)
+        with torch.no_grad():
+            action, _, _, _ = model.get_action(obs_t, deterministic=True)
+        act = int(action.item()) if discrete else action.cpu().numpy()[0]
+        obs, r, term, trunc, _ = env.step(act)
+        total_r += r
+        frame = env.render()
+        if frame is not None:
+            frames.append(frame)
+        if term or trunc:
+            break
+    env.close()
+    return frames, total_r
+
+
 def record_best_episode(scenario: dict) -> float | None:
-    """Record the best episode as a GIF with label overlay."""
+    """Record the best episode(s) as a GIF with label overlay."""
     env_name = scenario["env_name"]
     ckpt_path = scenario["ckpt"]
+    min_frames = scenario.get("min_frames", 50)
 
     if not Path(ckpt_path).exists():
         print(f"  Checkpoint not found: {ckpt_path} — skipping")
@@ -76,55 +101,63 @@ def record_best_episode(scenario: dict) -> float | None:
 
     model, discrete = load_model(ckpt_path, env_name)
 
-    best_frames: list = []
-    best_reward = -np.inf
-
+    all_episodes = []
     for ep in range(scenario["episodes"]):
-        env = make_highway_env(env_name, seed=ep, render=True)
-        obs, _ = env.reset(seed=ep)
-        frames: list = []
-        total_r = 0.0
-        for step in range(scenario["max_steps"]):
-            obs_t = torch.FloatTensor(preprocess_obs(obs, env_name)).unsqueeze(0).to(DEVICE)
-            with torch.no_grad():
-                action, _, _, _ = model.get_action(obs_t, deterministic=True)
-            act = int(action.item()) if discrete else action.cpu().numpy()[0]
-            obs, r, term, trunc, _ = env.step(act)
-            total_r += r
-            frame = env.render()
-            if frame is not None:
-                frames.append(frame)
-            if term or trunc:
-                break
-        env.close()
-        print(f"  Episode {ep}: reward {total_r:.2f}, {len(frames)} frames")
-        if total_r > best_reward and len(frames) > 10:
-            best_reward = total_r
-            best_frames = frames
+        frames, reward = run_episode(model, env_name, discrete, ep, scenario["max_steps"])
+        print(f"  Episode {ep}: reward {reward:.2f}, {len(frames)} frames")
+        if len(frames) > 3:
+            all_episodes.append((frames, reward))
 
-    if not best_frames:
+    if not all_episodes:
         print(f"  No frames captured for {env_name}")
         return None
 
+    all_episodes.sort(key=lambda x: x[1], reverse=True)
+    best_reward = all_episodes[0][1]
+
+    combined_frames = []
+    combined_rewards = []
+    for frames, reward in all_episodes:
+        if len(combined_frames) >= min_frames:
+            break
+        combined_frames.extend(frames)
+        combined_rewards.append(reward)
+        # add 5 blank separator frames between episodes
+        if len(combined_frames) < min_frames:
+            for _ in range(5):
+                combined_frames.append(combined_frames[-1])
+
+    avg_reward = np.mean(combined_rewards)
+    n_eps = len(combined_rewards)
+
     processed = []
-    for i, frame in enumerate(best_frames):
+    for i, frame in enumerate(combined_frames):
         img = Image.fromarray(frame)
         draw = ImageDraw.Draw(img)
         w, h = img.size
         draw.rectangle([0, h - 22, w, h], fill=(10, 10, 15))
-        draw.text(
-            (6, h - 16),
-            f"{scenario['label']}  |  Reward: {best_reward:.1f}  |  "
-            f"PPO Agent  |  Step {i + 1}/{len(best_frames)}",
-            fill=(180, 180, 190),
-        )
+        label = scenario["label"]
+        if n_eps > 1:
+            draw.text(
+                (6, h - 16),
+                f"{label}  |  Best: {best_reward:.1f}  |  "
+                f"PPO Agent  |  {n_eps} episodes",
+                fill=(180, 180, 190),
+            )
+        else:
+            draw.text(
+                (6, h - 16),
+                f"{label}  |  Reward: {best_reward:.1f}  |  "
+                f"PPO Agent  |  Step {i + 1}/{len(combined_frames)}",
+                fill=(180, 180, 190),
+            )
         draw.rectangle([0, 0, w, 2], fill=(59, 139, 212))
         processed.append(np.array(img))
 
     out_path = scenario["out"]
-    imageio.mimsave(out_path, processed, fps=20, loop=0)
+    imageio.mimsave(out_path, processed, fps=15, loop=0)
     size_mb = Path(out_path).stat().st_size / 1e6
-    print(f"  Saved {out_path} ({size_mb:.1f}MB, {len(processed)} frames, reward {best_reward:.1f})")
+    print(f"  Saved {out_path} ({size_mb:.1f}MB, {len(processed)} frames, best {best_reward:.1f})")
     return best_reward
 
 
