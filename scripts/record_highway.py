@@ -26,8 +26,8 @@ SCENARIOS = [
         "out": "assets/highway_demo.gif",
         "label": "Highway Overtaking",
         "episodes": 10,
-        "max_steps": 400,
-        "min_frames": 150,
+        "max_steps": 600,
+        "min_frames": 250,
     },
     {
         "env_name": "roundabout-v0",

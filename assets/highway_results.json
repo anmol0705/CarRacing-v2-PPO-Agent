@@ -1,14 +1,14 @@
 {
   "highway-v0": {
-    "best_reward": 146.9,
-    "training_hours": 2.26
+    "best_reward": 230.71,
+    "training_hours": 2.41
   },
   "roundabout-v0": {
     "best_reward": 41.13,
     "training_hours": 1.13
   },
   "parking-v0": {
-    "best_reward": -12.3,
-    "training_hours": 1.07
+    "best_reward": -11.61,
+    "training_hours": 0.7
   }
 }

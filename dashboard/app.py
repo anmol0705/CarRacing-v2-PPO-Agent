@@ -265,7 +265,7 @@ st.markdown(
 
 peak_r = best_info.get("reward", 940)
 hw_best = hw_results.get("highway-v0", {})
-hw_reward = hw_best.get("best_reward", 146.9) if isinstance(hw_best, dict) else hw_best
+hw_reward = hw_best.get("best_reward", 230.7) if isinstance(hw_best, dict) else hw_best
 
 st.markdown(
     f"""

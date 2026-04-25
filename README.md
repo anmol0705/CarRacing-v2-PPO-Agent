@@ -32,9 +32,9 @@ I built a **Proximal Policy Optimization (PPO)** agent from scratch &mdash; no S
 | Environment | What it does | Score | Train time |
 |:------------|:-------------|------:|:-----------|
 | **CarRacing-v2** | Full-speed laps from raw pixels | **940** (peak) / 874 (avg) | ~10 hrs |
-| **Highway-v0** | Lane changes & overtaking at 130 km/h | **146.9** | ~2.3 hrs |
+| **Highway-v0** | Lane changes & overtaking at 130 km/h | **230.7** | ~2.4 hrs |
 | **Roundabout-v0** | Enter, navigate, exit without crashing | **41.1** | ~1.1 hrs |
-| **Parking-v0** | Reverse into a tight parking spot | **-12.3** (closer to 0 = better) | ~1.1 hrs |
+| **Parking-v0** | Reverse into a tight parking spot | **-11.6** (random: -47) | ~0.7 hrs |
 
 > Human performance on CarRacing is ~900. The agent consistently beats that.
 
@@ -56,7 +56,7 @@ The agent sees 4 stacked grayscale frames (84x84 each), decides how much to stee
 
 ### Highway-v0 &mdash; Overtaking at speed
 
-No pixels here &mdash; the agent reads positions and velocities of nearby cars and decides: go faster, slow down, or change lanes. Think of it as a really aggressive GPS that only cares about going fast without crashing.
+No pixels here &mdash; the agent reads positions and velocities of nearby cars and decides: go faster, slow down, or change lanes. With a score of **230.7**, it drives aggressively through 10 other vehicles on a 4-lane highway, maintaining near-maximum speed while dodging traffic.
 
 <div align="center">
 <img src="assets/highway_demo.gif" alt="Highway overtaking demo" width="520">
@@ -76,7 +76,7 @@ Roundabouts are tricky even for humans. The agent has to time its entry, navigat
 
 ### Parking-v0 &mdash; The final boss
 
-Goal-conditioned sparse reward &mdash; the hardest setup in RL. The agent only gets told "how far from the target spot are you?" and has to figure out steering + throttle to park perfectly. It's not winning any valet competitions yet, but it tries.
+Goal-conditioned sparse reward &mdash; the hardest setup in RL. The agent only gets told "how far from the target spot are you?" and has to figure out steering + throttle to park. A random agent scores **-47** on average; our PPO agent hits **-11.6** &mdash; a 4x improvement using nothing but vanilla PPO (no HER, no reward shaping).
 
 <div align="center">
 <img src="assets/parking_demo.gif" alt="Parking demo" width="520">
