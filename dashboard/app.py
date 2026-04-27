@@ -735,7 +735,7 @@ with tab_train:
         ra_r = hw_results.get("roundabout-v0", {})
         pk_r = hw_results.get("parking-v0", {})
         ra_val = ra_r.get("best_reward", 41.1) if isinstance(ra_r, dict) else (ra_r or 0)
-        pk_val = pk_r.get("best_reward", -12.3) if isinstance(pk_r, dict) else (pk_r or 0)
+        pk_val = pk_r.get("best_reward", -11.6) if isinstance(pk_r, dict) else (pk_r or 0)
         st.markdown(
             f"""
 <div class="panel">
@@ -743,14 +743,14 @@ with tab_train:
   <table class="tbl">
     <thead><tr><th>Environment</th><th>Score</th><th>Train time</th></tr></thead>
     <tbody>
-      <tr><td>Highway-v0</td><td class="g">{hw_reward:.1f}</td><td>~2.3 hrs</td></tr>
+      <tr><td>Highway-v0</td><td class="g">{hw_reward:.1f}</td><td>~2.4 hrs</td></tr>
       <tr><td>Roundabout-v0</td><td class="v">{ra_val:.1f}</td><td>~1.1 hrs</td></tr>
-      <tr><td>Parking-v0</td><td class="v">{pk_val:.1f}</td><td>~1.1 hrs</td></tr>
+      <tr><td>Parking-v0</td><td class="v">{pk_val:.1f}</td><td>~0.7 hrs</td></tr>
     </tbody>
   </table>
   <p style="font-size:0.75rem;color:#52525B;margin:12px 0 0">
     All trained with MLP actor-critic (74K params) on same PPO implementation.
-    Parking uses sparse rewards, making it the hardest scenario.
+    Parking uses sparse rewards (random baseline: -47), making it the hardest scenario.
   </p>
 </div>
 """,

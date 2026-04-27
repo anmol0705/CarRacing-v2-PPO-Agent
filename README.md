@@ -31,10 +31,10 @@ I built a **Proximal Policy Optimization (PPO)** agent from scratch &mdash; no S
 
 | Environment | What it does | Score | Train time |
 |:------------|:-------------|------:|:-----------|
-| **CarRacing-v2** | Full-speed laps from raw pixels | **940** (peak) / 874 (avg) | ~10 hrs |
+| **CarRacing-v2** | Full-speed laps from raw pixels | **940** (peak) / 874 (avg) | ~12 hrs |
 | **Highway-v0** | Lane changes & overtaking at 130 km/h | **230.7** | ~2.4 hrs |
 | **Roundabout-v0** | Enter, navigate, exit without crashing | **41.1** | ~1.1 hrs |
-| **Parking-v0** | Reverse into a tight parking spot | **-11.6** (random: -47) | ~0.7 hrs |
+| **Parking-v0** | Goal-conditioned parking (sparse reward) | **-11.6** (random: -47) | ~0.7 hrs |
 
 > Human performance on CarRacing is ~900. The agent consistently beats that.
 
@@ -44,7 +44,7 @@ I built a **Proximal Policy Optimization (PPO)** agent from scratch &mdash; no S
 
 ### CarRacing-v2 &mdash; From zero to hero
 
-The agent sees 4 stacked grayscale frames (84x84 each), decides how much to steer, accelerate, and brake &mdash; 50 times per second. After 5 million steps of practice across 8 parallel tracks, it goes from drunk-driving-on-ice to smooth full-lap completions.
+The agent sees 4 stacked grayscale frames (84&times;84 each), decides how much to steer, accelerate, and brake &mdash; 50 times per second. After 5 million steps of practice across 8 parallel tracks, it goes from drunk-driving-on-ice to smooth full-lap completions.
 
 <div align="center">
 <img src="assets/progression.gif" alt="Training progression across checkpoints" width="700">
@@ -54,9 +54,9 @@ The agent sees 4 stacked grayscale frames (84x84 each), decides how much to stee
 
 <br>
 
-### Highway-v0 &mdash; Overtaking at speed
+### Highway-v0 &mdash; Overtaking at 130 km/h
 
-No pixels here &mdash; the agent reads positions and velocities of nearby cars and decides: go faster, slow down, or change lanes. With a score of **230.7**, it drives aggressively through 10 other vehicles on a 4-lane highway, maintaining near-maximum speed while dodging traffic.
+The agent reads kinematics of nearby cars and makes split-second lane change decisions. With a score of **230.7**, it weaves through 10 vehicles on a 4-lane highway &mdash; maintaining near-maximum speed while avoiding every collision. The GIF below is a 20-second continuous run, not cherry-picked.
 
 <div align="center">
 <img src="assets/highway_demo.gif" alt="Highway overtaking demo" width="520">
@@ -76,7 +76,7 @@ Roundabouts are tricky even for humans. The agent has to time its entry, navigat
 
 ### Parking-v0 &mdash; The final boss
 
-Goal-conditioned sparse reward &mdash; the hardest setup in RL. The agent only gets told "how far from the target spot are you?" and has to figure out steering + throttle to park. A random agent scores **-47** on average; our PPO agent hits **-11.6** &mdash; a 4x improvement using nothing but vanilla PPO (no HER, no reward shaping).
+Goal-conditioned sparse reward &mdash; the hardest setup in RL. The agent only gets told "how far from the target?" and has to figure out steering + throttle to park. A random agent scores **-47** on average; our PPO agent hits **-11.6** &mdash; a 4&times; improvement using nothing but vanilla PPO (no HER, no reward shaping). This is deliberately left as a hard, unsolved challenge to show where pure PPO hits its limits.
 
 <div align="center">
 <img src="assets/parking_demo.gif" alt="Parking demo" width="520">
@@ -88,11 +88,11 @@ Goal-conditioned sparse reward &mdash; the hardest setup in RL. The agent only g
 
 ```
 1. Let the agent drive around and collect experiences      (rollout)
-2. For each action, ask: "Was this better or worse         (advantage)
+2. For each action, ask: "Was this better or worse         (advantage
    than what I expected?"                                   estimation)
 3. Update the brain, but NOT too much at once              (clipped
    (this is the "proximal" part)                            objective)
-4. Repeat 5 million times
+4. Repeat 7 million times
 5. ???
 6. Profit (or at least, finish the lap)
 ```
@@ -146,7 +146,7 @@ Two brains, one body:
 
 ## The Training Journey
 
-This is what 10 hours of GPU time looks like:
+This is what 12 hours of GPU time looks like:
 
 | Step | Reward | What's happening |
 |-----:|-------:|:-----------------|
@@ -158,7 +158,7 @@ This is what 10 hours of GPU time looks like:
 | 4.2M | **631** | First near-complete laps! |
 | 4.7M | **753** | Consistent full laps. Target of 700 smashed. |
 | 4.9M | **812** | Best eval checkpoint. Near human-level. |
-| 5M+ | **874** | Fine-tuned. Peak single episode: **940.4** |
+| 7M | **874 avg / 940 peak** | Fine-tuned to superhuman. |
 
 The classic hockey-stick curve: 3 million steps of "is this thing even learning?" followed by rapid improvement once the agent figures out how to chain skills together.
 
@@ -166,15 +166,16 @@ The classic hockey-stick curve: 3 million steps of "is this thing even learning?
 
 ## Same Algorithm, Four Different Worlds
 
-The cool part: **the exact same PPO code** works across all four environments. The only thing that changes is the observation size and whether actions are discrete or continuous.
+The cool part: **the exact same PPO code** works across all four environments. The only thing that changes is the network (CNN vs MLP) and the action distribution (Gaussian vs Categorical).
 
 | | CarRacing | Highway | Roundabout | Parking |
 |:--|:----------|:--------|:-----------|:--------|
-| **Sees** | 4x84x84 pixels | 5x5 kinematics | 5x5 kinematics | 18-dim goal vector |
+| **Sees** | 4&times;84&times;84 pixels | 5&times;5 kinematics | 5&times;5 kinematics | 18-dim goal vector |
 | **Does** | Steer + gas + brake | 5 discrete choices | 5 discrete choices | Steer + throttle |
 | **Reward** | Dense (per tile) | Dense (speed) | Dense (progress) | Sparse (distance) |
 | **Traffic?** | Just you | 10 cars | 10 cars | Parked cars |
-| **Hard part** | Vision + control | Speed + safety | Timing | Precision |
+| **Network** | CNN (1.78M params) | MLP (74K params) | MLP (74K params) | MLP (74K params) |
+| **Hard part** | Vision + control | Speed + safety | Timing | Precision + sparse reward |
 
 ---
 
@@ -186,10 +187,10 @@ git clone https://github.com/anmol0705/CarRacing-v2-PPO-Agent.git
 cd carracing-ppo
 pip install -r requirements.txt
 
-# Train CarRacing (~10 hrs on GPU)
+# Train CarRacing (~12 hrs on GPU)
 python scripts/train.py
 
-# Train all highway scenarios (~1 hr)
+# Train all highway scenarios (~4 hrs)
 python scripts/train_highway.py
 
 # Run the dashboard
@@ -217,7 +218,7 @@ carracing-ppo/
 |   |-- record_showcase.py   # Best-episode HUD recording
 |   +-- record_highway.py    # Highway-env GIF recording
 |-- dashboard/
-|   +-- app.py               # Streamlit live demo
+|   +-- app.py               # Streamlit interactive dashboard
 +-- assets/                  # GIFs, CSVs, PNGs
 ```
 
@@ -232,6 +233,7 @@ carracing-ppo/
 | **Python 3.13 crash** | box2d SWIG wrapper rejected float32 | Custom `Float64Action` wrapper |
 | **Value loss spikes** | Value clipping was counterproductive | Removed clipping, simple MSE works better |
 | **10-epoch overfit** | Too many gradient steps per batch | Reduced to 4 epochs + KL early stopping |
+| **Parking collapse** | High entropy (0.05) destabilized after 50K steps | Conservative: ent=0.005, lr=1e-4, 4 epochs |
 
 ---
 
@@ -244,6 +246,8 @@ carracing-ppo/
 **Why 8 parallel envs?** &mdash; PPO needs decorrelated samples. Running 8 tracks simultaneously means experiences in the same batch come from different situations, which makes training much more stable.
 
 **Why entropy bonus?** &mdash; Without it, the agent quickly decides "I'll just always turn left" and stops exploring. The entropy term keeps the policy uncertain enough to discover better strategies.
+
+**Why vanilla PPO for parking?** &mdash; Intentional choice. HER (Hindsight Experience Replay) would improve parking significantly, but the point is to show what pure PPO can and can't do. The 4&times; improvement over random demonstrates the algorithm works; the remaining gap shows where specialized techniques matter.
 
 ---
 
@@ -259,6 +263,6 @@ Trained on **AWS EC2 g4dn.xlarge** (NVIDIA T4, 16GB VRAM)
 <sub>
 Every line of the RL algorithm is hand-written. No Stable-Baselines3 shortcuts.
 <br>
-Built as a portfolio project to demonstrate deep RL fundamentals.
+Built to demonstrate deep RL fundamentals &mdash; from raw pixels to autonomous driving.
 </sub>
 </div>
