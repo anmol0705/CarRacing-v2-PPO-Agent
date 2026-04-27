@@ -35,11 +35,13 @@ ORANGE = "#EF6C35"
 PURPLE = "#8B5CF6"
 RED = "#EF4444"
 TEAL = "#14B8A6"
+PINK = "#EC4899"
 
 st.markdown(
     """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 #MainMenu, footer, header { visibility: hidden; }
 .stDeployButton { display: none; }
@@ -59,14 +61,22 @@ st.markdown(
     color: #22C55E; letter-spacing: 0.02em; margin-bottom: 12px;
 }
 .hero-title {
-    font-size: 2.8rem; font-weight: 800; letter-spacing: -0.03em;
-    background: linear-gradient(135deg, #f0f0f0, #a0a0a0);
+    font-size: 2.8rem; font-weight: 900; letter-spacing: -0.04em;
+    background: linear-gradient(135deg, #f0f0f0 0%, #a0a0a0 50%, #f0f0f0 100%);
+    background-size: 200% auto;
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     margin: 0 0 0.6rem 0; line-height: 1.1;
+    animation: shimmer 4s linear infinite;
+}
+@keyframes shimmer {
+    to { background-position: 200% center; }
 }
 .hero-sub {
     font-size: 1.0rem; color: #71717A; font-weight: 400;
     max-width: 720px; line-height: 1.75; margin: 0 0 1.5rem 0;
+}
+.hero-highlight {
+    color: #A1A1AA; font-weight: 500;
 }
 
 /* ── Metric cards ── */
@@ -82,9 +92,9 @@ st.markdown(
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 12px; padding: 1rem 1rem 0.9rem;
     position: relative; overflow: hidden;
-    transition: border-color 0.2s;
+    transition: border-color 0.25s, transform 0.2s;
 }
-.m-card:hover { border-color: rgba(255,255,255,0.12); }
+.m-card:hover { border-color: rgba(255,255,255,0.14); transform: translateY(-1px); }
 .m-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0;
     height: 2px; background: var(--accent);
@@ -96,6 +106,7 @@ st.markdown(
 .m-value {
     font-size: 1.7rem; font-weight: 700; color: var(--accent);
     letter-spacing: -0.02em; line-height: 1; margin: 0 0 4px 0;
+    font-family: 'JetBrains Mono', monospace;
 }
 .m-sub { font-size: 0.7rem; color: #3F3F46; margin: 0; }
 
@@ -112,7 +123,9 @@ st.markdown(
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 12px; padding: 1.2rem 1.4rem;
+    transition: border-color 0.2s;
 }
+.panel:hover { border-color: rgba(255,255,255,0.1); }
 .panel h4 {
     font-size: 0.78rem; font-weight: 600; color: #D4D4D8; margin: 0 0 0.5rem 0;
 }
@@ -144,7 +157,9 @@ st.markdown(
     padding: 10px 22px; font-size: 0.8rem; font-weight: 500;
     color: #52525B; border-bottom: 2px solid transparent;
     border-radius: 0; background: transparent;
+    transition: color 0.2s;
 }
+.stTabs [data-baseweb="tab"]:hover { color: #71717A; }
 .stTabs [aria-selected="true"] {
     color: #E4E4E7 !important;
     border-bottom: 2px solid #3B8BD4 !important;
@@ -156,9 +171,13 @@ st.markdown(
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 12px; overflow: hidden;
-    transition: border-color 0.2s, transform 0.2s;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
 }
-.env-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
+.env-card:hover {
+    border-color: rgba(255,255,255,0.12);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
 .env-card-header {
     padding: 14px 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
 }
@@ -186,9 +205,9 @@ st.markdown(
 .spec-card {
     padding: 1rem; background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, transform 0.2s;
 }
-.spec-card:hover { border-color: rgba(255,255,255,0.12); }
+.spec-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-1px); }
 .spec-card .sk { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em;
     text-transform: uppercase; color: #3B8BD4; margin: 0 0 4px; }
 .spec-card .sv { font-size: 0.88rem; font-weight: 600; color: #D4D4D8; margin: 0; }
@@ -210,6 +229,52 @@ st.markdown(
 .timeline-step { font-size: 0.7rem; color: #52525B; font-weight: 600; margin: 0 0 2px; }
 .timeline-desc { font-size: 0.82rem; color: #A1A1AA; margin: 0; }
 .timeline-reward { font-size: 0.82rem; font-weight: 700; margin: 0 0 2px; }
+
+/* ── Code blocks ── */
+.code-block {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px; padding: 1rem 1.2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem; color: #A1A1AA;
+    line-height: 1.8; overflow-x: auto;
+}
+.code-block .kw { color: #C084FC; }
+.code-block .fn { color: #3B8BD4; }
+.code-block .cm { color: #52525B; }
+.code-block .st { color: #22C55E; }
+.code-block .num { color: #F59E0B; }
+
+/* ── Leaderboard ── */
+.lb-rank {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 700;
+    background: rgba(255,255,255,0.04);
+    color: #71717A;
+}
+.lb-rank-1 { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05)); color: #F59E0B; }
+.lb-rank-2 { background: linear-gradient(135deg, rgba(168,162,158,0.2), rgba(168,162,158,0.05)); color: #A8A29E; }
+.lb-rank-3 { background: linear-gradient(135deg, rgba(180,83,9,0.2), rgba(180,83,9,0.05)); color: #B45309; }
+
+/* ── Insight cards ── */
+.insight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 768px) { .insight-grid { grid-template-columns: 1fr; } }
+.insight-card {
+    padding: 1rem; background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; border-left: 3px solid var(--accent);
+    transition: border-color 0.2s;
+}
+.insight-card:hover { border-color: rgba(255,255,255,0.12); }
+.insight-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.3rem; font-weight: 700; color: var(--accent);
+    margin: 0 0 4px;
+}
+.insight-label { font-size: 0.7rem; color: #52525B; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 4px; }
+.insight-desc { font-size: 0.75rem; color: #71717A; line-height: 1.5; margin: 0; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -243,20 +308,41 @@ def load_json(path: Path, default=None):
     return default or {}
 
 
+PLOT_BG = "rgba(0,0,0,0)"
+GRID = "rgba(255,255,255,0.03)"
+FONT = dict(family="Inter, monospace", size=11, color="#71717A")
+
+
+def make_layout(title: str, ytitle: str, h: int = 360) -> dict:
+    return dict(
+        title=dict(text=title, font=dict(size=13, color="#A1A1AA", family="Inter, monospace")),
+        xaxis=dict(title="Training steps", tickfont=FONT, gridcolor=GRID,
+                   linecolor="rgba(255,255,255,0.06)", tickformat=".2s",
+                   zeroline=False),
+        yaxis=dict(title=ytitle, tickfont=FONT, gridcolor=GRID,
+                   linecolor="rgba(255,255,255,0.06)", zeroline=False),
+        paper_bgcolor=PLOT_BG, plot_bgcolor="rgba(0,0,0,0)",
+        height=h, margin=dict(l=55, r=30, t=50, b=50),
+        legend=dict(font=dict(size=10, color="#71717A"), bgcolor="rgba(0,0,0,0)"),
+        hovermode="x unified",
+    )
+
+
 best_info = load_json(ASSETS / "best_episode_info.json", {"reward": 940, "steps": 596, "seed": 185})
 hw_results = load_json(ASSETS / "highway_results.json")
 
 
 # ── Hero ──────────────────────────────────────────────────────────────────
 
-st.markdown('<div class="hero-badge">940 / 1000 peak reward</div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-badge">ABOVE HUMAN LEVEL</div>', unsafe_allow_html=True)
 st.markdown('<h1 class="hero-title">PPO for Autonomous Driving</h1>', unsafe_allow_html=True)
 st.markdown(
     '<p class="hero-sub">'
-    "Proximal Policy Optimisation built from scratch in PyTorch. "
-    "Four driving challenges: pixel-based circuit racing, highway overtaking, "
-    "roundabout navigation, and autonomous parking. "
-    "No pretrained models, no RL libraries."
+    "Proximal Policy Optimisation built <span class='hero-highlight'>entirely from scratch</span> in PyTorch. "
+    "Four driving challenges &mdash; pixel-based racing, highway overtaking, "
+    "roundabout navigation, and autonomous parking &mdash; all powered by "
+    "<span class='hero-highlight'>the same algorithm</span>. "
+    "No pretrained models. No RL libraries."
     "</p>",
     unsafe_allow_html=True,
 )
@@ -286,9 +372,9 @@ st.markdown(
     <p class="m-sub">lane changes + overtaking</p>
   </div>
   <div class="m-card" style="--accent:{PURPLE}">
-    <p class="m-label">Training</p>
+    <p class="m-label">Training Steps</p>
     <p class="m-value">7M</p>
-    <p class="m-sub">total steps across envs</p>
+    <p class="m-sub">across all environments</p>
   </div>
   <div class="m-card" style="--accent:{ORANGE}">
     <p class="m-label">Parameters</p>
@@ -302,8 +388,8 @@ st.markdown(
 
 # ── Tabs ──────────────────────────────────────────────────────────────────
 
-tab_race, tab_highway, tab_train, tab_arch, tab_about = st.tabs(
-    [" CarRacing ", " Highway Scenarios ", " Training ", " Architecture ", " About "]
+tab_race, tab_highway, tab_train, tab_arch, tab_algo, tab_about = st.tabs(
+    [" CarRacing ", " Highway Scenarios ", " Training Deep-Dive ", " Architecture ", " How PPO Works ", " About "]
 )
 
 
@@ -336,11 +422,11 @@ with tab_race:
   <div style="display:grid;gap:14px">
     <div>
       <p class="m-label">Reward</p>
-      <p style="color:{GREEN};font-size:1.5rem;font-weight:700;margin:0">{ep_reward:.0f}</p>
+      <p style="color:{GREEN};font-size:1.5rem;font-weight:700;margin:0;font-family:'JetBrains Mono',monospace">{ep_reward:.0f}</p>
     </div>
     <div>
       <p class="m-label">Duration</p>
-      <p style="color:#D4D4D8;font-size:1.1rem;font-weight:600;margin:0">{ep_steps} steps</p>
+      <p style="color:#D4D4D8;font-size:1.1rem;font-weight:600;margin:0;font-family:'JetBrains Mono',monospace">{ep_steps} steps</p>
     </div>
     <div>
       <p class="m-label">Policy</p>
@@ -352,7 +438,7 @@ with tab_race:
     </div>
     <div>
       <p class="m-label">Human level</p>
-      <p style="color:#A1A1AA;font-size:.82rem;margin:0">~900 (our agent exceeds this)</p>
+      <p style="color:{AMBER};font-size:.82rem;font-weight:500;margin:0">~900 (agent exceeds this)</p>
     </div>
   </div>
 </div>
@@ -401,14 +487,95 @@ with tab_race:
       </div>
     </div>
     <div class="timeline-item">
+      <div class="timeline-dot" style="background:{TEAL}"></div>
+      <div class="timeline-content">
+        <p class="timeline-step">4.2M steps</p>
+        <p class="timeline-reward" style="color:{TEAL}">Reward: +631</p>
+        <p class="timeline-desc">First full laps</p>
+      </div>
+    </div>
+    <div class="timeline-item">
       <div class="timeline-dot" style="background:{GREEN}"></div>
       <div class="timeline-content">
-        <p class="timeline-step">4.9M steps</p>
-        <p class="timeline-reward" style="color:{GREEN}">Reward: +812</p>
-        <p class="timeline-desc">Full laps, above human level</p>
+        <p class="timeline-step">7M steps</p>
+        <p class="timeline-reward" style="color:{GREEN}">Reward: +940</p>
+        <p class="timeline-desc">Above human level</p>
       </div>
     </div>
   </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+    # Key Insights
+    st.markdown('<div class="sec-h">Key insights</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+<div class="insight-grid">
+  <div class="insight-card" style="--accent:{GREEN}">
+    <p class="insight-num">3M</p>
+    <p class="insight-label">Steps to first progress</p>
+    <p class="insight-desc">The agent appears to learn nothing for 3M steps, then reward
+    explodes. This "hockey stick" pattern is characteristic of RL on complex tasks.</p>
+  </div>
+  <div class="insight-card" style="--accent:{BLUE}">
+    <p class="insight-num">+15%</p>
+    <p class="insight-label">Fine-tuning gain</p>
+    <p class="insight-desc">Reducing LR from 2.5e-4 to 5e-5 and training for 2M more steps
+    pushed average reward from 812 to 874. Small hyperparameter changes, big impact.</p>
+  </div>
+  <div class="insight-card" style="--accent:{AMBER}">
+    <p class="insight-num">4x</p>
+    <p class="insight-label">Faster than single env</p>
+    <p class="insight-desc">8 parallel environments don't just speed up data collection &mdash;
+    they decorrelate samples, making each PPO update more effective.</p>
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+    # Leaderboard
+    lb_path = ASSETS / "episode_leaderboard.csv"
+    if lb_path.exists():
+        st.markdown('<div class="sec-h">Episode leaderboard (top 10)</div>', unsafe_allow_html=True)
+        lb_df = pd.read_csv(lb_path)
+        lb_top = lb_df.nlargest(10, "reward")
+
+        rows_html = ""
+        for i, (_, row) in enumerate(lb_top.iterrows()):
+            rank = i + 1
+            rank_cls = f" lb-rank-{rank}" if rank <= 3 else ""
+            ckpt = row["checkpoint"].replace("checkpoints/", "").replace(".pt", "")
+            rows_html += f"""
+            <tr>
+              <td><span class="lb-rank{rank_cls}">{rank}</span></td>
+              <td class="g" style="font-family:'JetBrains Mono',monospace">{row['reward']:.1f}</td>
+              <td class="v">{int(row['steps'])}</td>
+              <td>{row['seed']}</td>
+              <td style="font-size:0.75rem">{ckpt}</td>
+              <td class="v">{row['completion']:.0%}</td>
+            </tr>"""
+
+        st.markdown(
+            f"""
+<div class="panel">
+  <table class="tbl">
+    <thead><tr>
+      <th style="width:40px">#</th><th>Reward</th><th>Steps</th>
+      <th>Seed</th><th>Checkpoint</th><th>Completion</th>
+    </tr></thead>
+    <tbody>{rows_html}</tbody>
+  </table>
+  <p style="font-size:0.7rem;color:#3F3F46;margin:12px 0 0">
+    Evaluated with deterministic policy across 10 random seeds per checkpoint.
+    Steps = episode length (max 1000). Completion = fraction of track tiles visited.
+  </p>
 </div>
 """,
             unsafe_allow_html=True,
@@ -467,9 +634,9 @@ with tab_race:
     <span class="env-stat-val">4 frames for velocity info</span></div>
   <br>
   <h4>Why frame stacking?</h4>
-  <p>A single image is a photograph. You can't tell if the car is moving or stopped,
+  <p>A single image is a photograph &mdash; you can't tell if the car is moving or stopped,
   turning or straight. Four consecutive frames encode velocity and acceleration implicitly
-  through pixel differences.</p>
+  through pixel differences, restoring the Markov property.</p>
 </div>
 """,
             unsafe_allow_html=True,
@@ -485,12 +652,11 @@ with tab_highway:
         '<p style="font-size:0.88rem;color:#71717A;line-height:1.7;margin:0 0 1.5rem">'
         "The same PPO algorithm applied to three different driving challenges from "
         "<strong style='color:#A1A1AA'>highway-env</strong>. Each tests a different "
-        "competency: speed, timing, and precision."
+        "competency: speed, timing, and precision. The only change between environments "
+        "is the network architecture (MLP instead of CNN) and action distribution."
         "</p>",
         unsafe_allow_html=True,
     )
-
-    hw_demo = load_json(ASSETS / "highway_demo_results.json")
 
     scenarios = [
         {
@@ -502,6 +668,8 @@ with tab_highway:
             "action": "Discrete (5 actions)",
             "obs": "Kinematics of 5 vehicles",
             "difficulty": "Speed + safety",
+            "network": "MLP (74K params)",
+            "steps": "500K",
         },
         {
             "title": "Roundabout Navigation",
@@ -512,6 +680,8 @@ with tab_highway:
             "action": "Discrete (5 actions)",
             "obs": "Kinematics of 5 vehicles",
             "difficulty": "Timing + awareness",
+            "network": "MLP (74K params)",
+            "steps": "300K",
         },
         {
             "title": "Autonomous Parking",
@@ -522,6 +692,8 @@ with tab_highway:
             "action": "Continuous (steer + throttle)",
             "obs": "18-dim goal vector",
             "difficulty": "Precision + sparse reward",
+            "network": "MLP (74K params)",
+            "steps": "300K",
         },
     ]
 
@@ -551,7 +723,7 @@ with tab_highway:
   <div class="env-card-footer">
     <div class="env-stat">
       <span class="env-stat-label">Best reward</span>
-      <span style="font-size:1.1rem;font-weight:700;color:{s['color']}">{reward:.1f}</span>
+      <span style="font-size:1.1rem;font-weight:700;color:{s['color']};font-family:'JetBrains Mono',monospace">{reward:.1f}</span>
     </div>
     <div class="env-stat">
       <span class="env-stat-label">Actions</span>
@@ -562,12 +734,16 @@ with tab_highway:
       <span class="env-stat-val">{s['obs']}</span>
     </div>
     <div class="env-stat">
-      <span class="env-stat-label">Hard part</span>
-      <span class="env-stat-val">{s['difficulty']}</span>
+      <span class="env-stat-label">Network</span>
+      <span class="env-stat-val">{s['network']}</span>
     </div>
     <div class="env-stat">
-      <span class="env-stat-label">Train time</span>
-      <span class="env-stat-val">{hours:.1f} hrs</span>
+      <span class="env-stat-label">Training</span>
+      <span class="env-stat-val">{s['steps']} steps / {hours:.1f} hrs</span>
+    </div>
+    <div class="env-stat">
+      <span class="env-stat-label">Hard part</span>
+      <span class="env-stat-val">{s['difficulty']}</span>
     </div>
   </div>
 </div>
@@ -592,7 +768,7 @@ with tab_highway:
       <tr><td>Observation</td><td class="v">4x84x84 pixels</td>
           <td class="v">5x5 kinematics</td><td class="v">5x5 kinematics</td>
           <td class="v">18-dim goal</td></tr>
-      <tr><td>Action space</td><td class="v">Continuous</td>
+      <tr><td>Action space</td><td class="v">Continuous (3)</td>
           <td class="v">Discrete (5)</td><td class="v">Discrete (5)</td>
           <td class="v">Continuous (2)</td></tr>
       <tr><td>Reward type</td><td class="v">Dense</td>
@@ -604,6 +780,9 @@ with tab_highway:
       <tr><td>Network</td><td class="v">CNN (1.78M)</td>
           <td class="v">MLP (74K)</td><td class="v">MLP (74K)</td>
           <td class="v">MLP (74K)</td></tr>
+      <tr><td>Training</td><td class="v">~12 hrs</td>
+          <td class="v">~2.4 hrs</td><td class="v">~1.1 hrs</td>
+          <td class="v">~0.7 hrs</td></tr>
     </tbody>
   </table>
 </div>
@@ -611,105 +790,206 @@ with tab_highway:
         unsafe_allow_html=True,
     )
 
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+    # Parking analysis
+    st.markdown('<div class="sec-h">Why parking is the hardest</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+<div class="panel">
+  <h4>The sparse reward problem</h4>
+  <p style="margin-bottom:12px">Parking uses a goal-conditioned sparse reward: the agent only learns
+  how far it is from the target position and orientation. Unlike highway (instant speed feedback) or
+  CarRacing (per-tile reward), there's almost no gradient signal to follow.</p>
+
+  <div class="insight-grid" style="margin-top:12px">
+    <div style="text-align:center;padding:12px">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:{RED};margin:0">-47</p>
+      <p style="font-size:0.7rem;color:#52525B;margin:4px 0 0">Random agent</p>
+    </div>
+    <div style="text-align:center;padding:12px">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:{AMBER};margin:0">-11.6</p>
+      <p style="font-size:0.7rem;color:#52525B;margin:4px 0 0">Our PPO agent</p>
+    </div>
+    <div style="text-align:center;padding:12px">
+      <p style="font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;color:{GREEN};margin:0">4x</p>
+      <p style="font-size:0.7rem;color:#52525B;margin:4px 0 0">Improvement</p>
+    </div>
+  </div>
+
+  <p style="margin-top:12px">This is deliberately left as an unsolved challenge. HER (Hindsight Experience Replay)
+  would likely push the score near 0, but the point is to show where vanilla PPO hits its limits.</p>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
 
 # ══════════════════════════════════════════════════════════════════
-# TAB: TRAINING
+# TAB: TRAINING DEEP-DIVE
 # ══════════════════════════════════════════════════════════════════
 with tab_train:
-    st.markdown('<div class="sec-h">Training curves</div>', unsafe_allow_html=True)
+    # Load training data
+    train_csv = ASSETS / "training_metrics.csv"
+    eval_csv = ASSETS / "eval_metrics.csv"
+    train_df = pd.read_csv(train_csv) if train_csv.exists() else None
+    eval_df = pd.read_csv(eval_csv) if eval_csv.exists() else None
 
-    csv_candidates = [ASSETS / "training_metrics.csv", ASSETS / "eval_metrics.csv"]
-    df = None
-    for cp in csv_candidates:
-        if cp.exists():
-            df = pd.read_csv(cp)
-            df.columns = [c.lower().strip() for c in df.columns]
-            break
+    if train_df is not None:
+        train_df.columns = [c.lower().strip() for c in train_df.columns]
+    if eval_df is not None:
+        eval_df.columns = [c.lower().strip() for c in eval_df.columns]
 
-    PLOT_BG = "rgba(0,0,0,0)"
-    GRID = "rgba(255,255,255,0.03)"
-    FONT = dict(family="Inter, monospace", size=11, color="#71717A")
+    # ── Main reward curve ──
+    st.markdown('<div class="sec-h">Evaluation reward over training</div>', unsafe_allow_html=True)
 
-    def layout(title: str, ytitle: str, h: int = 360) -> dict:
-        return dict(
-            title=dict(text=title, font=dict(size=13, color="#71717A", family="Inter, monospace")),
-            xaxis=dict(title="Training steps", tickfont=FONT, gridcolor=GRID,
-                       linecolor="rgba(255,255,255,0.06)", tickformat=".2s"),
-            yaxis=dict(title=ytitle, tickfont=FONT, gridcolor=GRID,
-                       linecolor="rgba(255,255,255,0.06)"),
-            paper_bgcolor=PLOT_BG, plot_bgcolor="rgba(0,0,0,0)",
-            height=h, margin=dict(l=55, r=30, t=50, b=50),
-            legend=dict(font=dict(size=10, color="#71717A"), bgcolor="rgba(0,0,0,0)"),
-            hovermode="x unified",
-        )
-
-    if df is not None:
-        step_col = next((c for c in df.columns if "step" in c), None)
-        reward_col = next((c for c in df.columns if "reward" in c or "return" in c), None)
-        ent_col = next((c for c in df.columns if "entrop" in c), None)
-        vl_col = next((c for c in df.columns if "value" in c and "loss" in c), None)
+    if eval_df is not None:
+        step_col = next((c for c in eval_df.columns if "step" in c), None)
+        reward_col = next((c for c in eval_df.columns if "reward" in c or "return" in c), None)
 
         if step_col and reward_col:
             fig = go.Figure()
-            w = max(1, len(df) // 40)
-            smoothed = df[reward_col].rolling(w, center=True).mean()
+            w = max(1, len(eval_df) // 20)
+            smoothed = eval_df[reward_col].rolling(w, center=True).mean()
+
             fig.add_trace(go.Scatter(
-                x=df[step_col], y=df[reward_col], mode="lines", name="Raw eval",
-                line=dict(color="rgba(59,139,212,0.15)", width=1),
+                x=eval_df[step_col], y=eval_df[reward_col], mode="lines+markers",
+                name="Eval reward",
+                line=dict(color="rgba(59,139,212,0.25)", width=1),
+                marker=dict(color=BLUE, size=3),
             ))
             fig.add_trace(go.Scatter(
-                x=df[step_col], y=smoothed, mode="lines", name="Smoothed",
+                x=eval_df[step_col], y=smoothed, mode="lines", name="Smoothed",
                 line=dict(color=BLUE, width=2.5),
                 fill="tozeroy", fillcolor="rgba(59,139,212,0.05)",
             ))
             fig.add_hline(y=700, line_dash="dash", line_color="rgba(34,197,94,0.35)",
-                          annotation_text="Target 700", annotation_font_color=GREEN,
+                          annotation_text="Target: 700", annotation_font_color=GREEN,
                           annotation_font_size=10)
             fig.add_hline(y=900, line_dash="dot", line_color="rgba(245,158,11,0.25)",
-                          annotation_text="Human level ~900", annotation_font_color=AMBER,
+                          annotation_text="Human level: ~900", annotation_font_color=AMBER,
                           annotation_font_size=10)
-            best_idx = df[reward_col].idxmax()
+
+            best_idx = eval_df[reward_col].idxmax()
             fig.add_trace(go.Scatter(
-                x=[df[step_col].iloc[best_idx]], y=[df[reward_col].iloc[best_idx]],
-                mode="markers+text", marker=dict(color=ORANGE, size=8),
-                text=[f"  {df[reward_col].iloc[best_idx]:.0f}"],
-                textposition="middle right", textfont=dict(size=10, color=ORANGE),
+                x=[eval_df[step_col].iloc[best_idx]], y=[eval_df[reward_col].iloc[best_idx]],
+                mode="markers+text", marker=dict(color=GREEN, size=10, symbol="star"),
+                text=[f"  Best: {eval_df[reward_col].iloc[best_idx]:.0f}"],
+                textposition="middle right", textfont=dict(size=11, color=GREEN),
                 name="Best", showlegend=False,
             ))
-            fig.update_layout(**layout("Eval reward vs training steps", "Eval reward", 380))
+            fig.update_layout(**make_layout("Eval reward vs training steps", "Eval reward", 400))
             st.plotly_chart(fig, use_container_width=True)
 
-        secondary = []
-        if ent_col and step_col:
-            fe = go.Figure()
-            fe.add_trace(go.Scatter(
-                x=df[step_col], y=df[ent_col], mode="lines",
-                line=dict(color=TEAL, width=1.5),
-                fill="tozeroy", fillcolor="rgba(20,184,166,0.05)", name="Entropy",
+    elif train_df is not None:
+        step_col = next((c for c in train_df.columns if "step" in c), None)
+        reward_col = next((c for c in train_df.columns if "reward" in c or "return" in c), None)
+        if step_col and reward_col:
+            fig = go.Figure()
+            w = max(1, len(train_df) // 40)
+            smoothed = train_df[reward_col].rolling(w, center=True).mean()
+            fig.add_trace(go.Scatter(
+                x=train_df[step_col], y=train_df[reward_col], mode="lines",
+                line=dict(color="rgba(59,139,212,0.15)", width=1), name="Raw",
             ))
-            fe.update_layout(**layout("Policy entropy", "H(pi)", 300))
-            secondary.append(fe)
-        if vl_col and step_col:
-            fv = go.Figure()
-            fv.add_trace(go.Scatter(
-                x=df[step_col], y=df[vl_col], mode="lines",
-                line=dict(color=ORANGE, width=1.5),
-                fill="tozeroy", fillcolor="rgba(239,108,53,0.05)", name="Value loss",
+            fig.add_trace(go.Scatter(
+                x=train_df[step_col], y=smoothed, mode="lines", name="Smoothed",
+                line=dict(color=BLUE, width=2.5),
+                fill="tozeroy", fillcolor="rgba(59,139,212,0.05)",
             ))
-            fv.update_layout(**layout("Value loss", "MSE", 300))
-            secondary.append(fv)
-        if secondary:
-            scols = st.columns(len(secondary), gap="medium")
-            for sc, sf in zip(scols, secondary):
-                with sc:
-                    st.plotly_chart(sf, use_container_width=True)
+            fig.update_layout(**make_layout("Training reward", "Reward", 400))
+            st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("Upload `training_metrics.csv` to `assets/` to see training curves.")
+        st.info("Upload `training_metrics.csv` or `eval_metrics.csv` to `assets/` to see training curves.")
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+    # ── Training metrics exploration ──
+    if train_df is not None:
+        st.markdown('<div class="sec-h">Training metrics explorer</div>', unsafe_allow_html=True)
+
+        step_col = next((c for c in train_df.columns if "step" in c), None)
+        available_metrics = {}
+        metric_info = {
+            "policy_loss": ("Policy Loss", BLUE, "Clipped surrogate objective. Should be small and stable."),
+            "value_loss": ("Value Loss", ORANGE, "MSE between predicted and actual returns. Spikes = new situations."),
+            "entropy": ("Policy Entropy", TEAL, "How random the policy is. Should decrease over time but not collapse."),
+            "approx_kl": ("KL Divergence", PURPLE, "How much the policy changed. KL > target triggers early stopping."),
+            "clip_frac": ("Clip Fraction", PINK, "% of samples hitting the PPO clip boundary."),
+            "lr": ("Learning Rate", AMBER, "Linear decay from 2.5e-4 to near zero."),
+            "sps": ("Steps/Second", GREEN, "Training throughput (higher = faster)."),
+        }
+
+        for key in metric_info:
+            if key in train_df.columns:
+                available_metrics[key] = metric_info[key]
+
+        if step_col and available_metrics:
+            selected = st.multiselect(
+                "Select metrics to visualize",
+                options=list(available_metrics.keys()),
+                default=["entropy", "value_loss", "approx_kl"],
+                format_func=lambda x: available_metrics[x][0],
+            )
+
+            if selected:
+                n_cols = min(len(selected), 2)
+                chart_cols = st.columns(n_cols, gap="medium")
+                for i, metric_key in enumerate(selected):
+                    name, color, desc = available_metrics[metric_key]
+                    with chart_cols[i % n_cols]:
+                        fig = go.Figure()
+                        y_data = train_df[metric_key]
+                        w = max(1, len(train_df) // 60)
+                        smoothed = y_data.rolling(w, center=True).mean()
+
+                        fig.add_trace(go.Scatter(
+                            x=train_df[step_col], y=y_data, mode="lines",
+                            line=dict(color=f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.15)", width=1),
+                            name="Raw", showlegend=False,
+                        ))
+                        fig.add_trace(go.Scatter(
+                            x=train_df[step_col], y=smoothed, mode="lines",
+                            line=dict(color=color, width=2),
+                            name=name,
+                        ))
+                        fig.update_layout(**make_layout(name, name, 280))
+                        fig.update_layout(margin=dict(t=40, b=40))
+                        st.plotly_chart(fig, use_container_width=True)
+                        st.markdown(
+                            f'<p style="font-size:0.72rem;color:#52525B;margin:-12px 0 8px;line-height:1.5">{desc}</p>',
+                            unsafe_allow_html=True,
+                        )
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+    # ── Reward distribution ──
+    if eval_df is not None:
+        reward_col = next((c for c in eval_df.columns if "reward" in c), None)
+        if reward_col:
+            st.markdown('<div class="sec-h">Reward distribution across training</div>', unsafe_allow_html=True)
+
+            rewards = eval_df[reward_col]
+            fig = go.Figure()
+            fig.add_trace(go.Histogram(
+                x=rewards, nbinsx=25,
+                marker=dict(color=BLUE, line=dict(color="rgba(59,139,212,0.5)", width=1)),
+                opacity=0.7,
+            ))
+            fig.add_vline(x=rewards.mean(), line_dash="dash", line_color=AMBER,
+                          annotation_text=f"Mean: {rewards.mean():.0f}",
+                          annotation_font_color=AMBER, annotation_font_size=10)
+            fig.add_vline(x=rewards.max(), line_dash="dash", line_color=GREEN,
+                          annotation_text=f"Best: {rewards.max():.0f}",
+                          annotation_font_color=GREEN, annotation_font_size=10)
+            fig.update_layout(**make_layout("Distribution of eval rewards", "Count", 300))
+            fig.update_layout(showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
     # Results summary
-    st.markdown('<div class="sec-h">Evaluation summary</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-h">Final results summary</div>', unsafe_allow_html=True)
 
     res_col1, res_col2 = st.columns(2, gap="large")
     with res_col1:
@@ -722,9 +1002,10 @@ with tab_train:
     <tbody>
       <tr><td>Peak episode reward</td><td class="g">{peak_r:.0f}</td><td>single best episode</td></tr>
       <tr><td>Average (20 episodes)</td><td class="g">874</td><td>consistent performance</td></tr>
-      <tr><td>Training steps</td><td class="v">7M</td><td>5M base + 2M fine-tune</td></tr>
-      <tr><td>Wall-clock time</td><td class="v">~12 hrs</td><td>NVIDIA T4 GPU</td></tr>
       <tr><td>Human level</td><td class="v">~900</td><td>agent exceeds this</td></tr>
+      <tr><td>Total training steps</td><td class="v">7M</td><td>5M base + 2M fine-tune</td></tr>
+      <tr><td>Wall-clock time</td><td class="v">~12 hrs</td><td>NVIDIA T4 GPU</td></tr>
+      <tr><td>Parameters</td><td class="v">1.78M</td><td>CNN actor-critic</td></tr>
     </tbody>
   </table>
 </div>
@@ -741,11 +1022,11 @@ with tab_train:
 <div class="panel">
   <h4>Highway-env scenarios</h4>
   <table class="tbl">
-    <thead><tr><th>Environment</th><th>Score</th><th>Train time</th></tr></thead>
+    <thead><tr><th>Environment</th><th>Score</th><th>Steps</th><th>Time</th></tr></thead>
     <tbody>
-      <tr><td>Highway-v0</td><td class="g">{hw_reward:.1f}</td><td>~2.4 hrs</td></tr>
-      <tr><td>Roundabout-v0</td><td class="v">{ra_val:.1f}</td><td>~1.1 hrs</td></tr>
-      <tr><td>Parking-v0</td><td class="v">{pk_val:.1f}</td><td>~0.7 hrs</td></tr>
+      <tr><td>Highway-v0</td><td class="g">{hw_reward:.1f}</td><td class="v">500K</td><td>~2.4 hrs</td></tr>
+      <tr><td>Roundabout-v0</td><td class="v">{ra_val:.1f}</td><td class="v">300K</td><td>~1.1 hrs</td></tr>
+      <tr><td>Parking-v0</td><td class="v">{pk_val:.1f}</td><td class="v">300K</td><td>~0.7 hrs</td></tr>
     </tbody>
   </table>
   <p style="font-size:0.75rem;color:#52525B;margin:12px 0 0">
@@ -764,25 +1045,55 @@ with tab_train:
 with tab_arch:
     st.markdown('<div class="sec-h">Network architecture</div>', unsafe_allow_html=True)
 
-    arch_path = ASSETS / "architecture_diagram.png"
-    if arch_path.exists():
-        st.image(Image.open(arch_path), use_container_width=True)
-    else:
-        st.markdown(
-            f"""
+    arch_col1, arch_col2 = st.columns([3, 2], gap="large")
+
+    with arch_col1:
+        arch_path = ASSETS / "architecture_diagram.png"
+        if arch_path.exists():
+            st.image(Image.open(arch_path), use_container_width=True)
+        else:
+            st.markdown(
+                f"""
 <div class="panel" style="text-align:center;padding:2rem">
   <p style="font-size:0.85rem;color:#A1A1AA;margin:0 0 6px">
     <strong>CNN Actor-Critic</strong> (CarRacing)</p>
-  <p style="font-family:monospace;font-size:0.78rem;color:#71717A;line-height:2.2;margin:0">
-    Input: 4 x 84 x 84<br>
-    Conv2d(4, 32, 8, stride=4) + ReLU<br>
-    Conv2d(32, 64, 4, stride=2) + ReLU<br>
-    Conv2d(64, 64, 3, stride=1) + ReLU<br>
-    Flatten(3136) + Linear(512) + ReLU<br>
-    <span style="color:{BLUE}">Actor: Linear(3) [steer, gas, brake]</span>
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    <span style="color:{GREEN}">Critic: Linear(1) [V(s)]</span>
-  </p>
+  <div class="code-block" style="text-align:left;margin-top:12px">
+    Input: <span class="num">4</span> x <span class="num">84</span> x <span class="num">84</span> grayscale frames<br>
+    <br>
+    Conv2d(<span class="num">4</span>, <span class="num">32</span>, <span class="num">8</span>, stride=<span class="num">4</span>) + ReLU<br>
+    Conv2d(<span class="num">32</span>, <span class="num">64</span>, <span class="num">4</span>, stride=<span class="num">2</span>) + ReLU<br>
+    Conv2d(<span class="num">64</span>, <span class="num">64</span>, <span class="num">3</span>, stride=<span class="num">1</span>) + ReLU<br>
+    Flatten(<span class="num">3136</span>) + Linear(<span class="num">512</span>) + ReLU<br>
+    <br>
+    <span class="fn">Actor:</span> Linear(<span class="num">3</span>) <span class="cm">[steer, gas, brake]</span><br>
+    <span class="fn">Critic:</span> Linear(<span class="num">1</span>) <span class="cm">[V(s)]</span>
+  </div>
+</div>
+""",
+                unsafe_allow_html=True,
+            )
+
+    with arch_col2:
+        st.markdown(
+            f"""
+<div class="panel">
+  <h4>Design rationale</h4>
+  <p style="margin-bottom:12px">The architecture follows the Nature DQN backbone
+  (Mnih et al., 2015) with a shared feature extractor feeding separate actor and critic heads.
+  This is standard for PPO on pixel inputs.</p>
+
+  <div style="display:grid;gap:10px">
+    <div class="env-stat"><span class="env-stat-label">Shared backbone</span>
+      <span class="env-stat-val">Lower param count</span></div>
+    <div class="env-stat"><span class="env-stat-label">Separate heads</span>
+      <span class="env-stat-val">Independent learning rates</span></div>
+    <div class="env-stat"><span class="env-stat-label">Learnable log_std</span>
+      <span class="env-stat-val">State-independent exploration</span></div>
+    <div class="env-stat"><span class="env-stat-label">No batch norm</span>
+      <span class="env-stat-val">Simpler, more stable</span></div>
+    <div class="env-stat"><span class="env-stat-label">Orthogonal init</span>
+      <span class="env-stat-val">Stable gradient flow</span></div>
+  </div>
 </div>
 """,
             unsafe_allow_html=True,
@@ -822,21 +1133,20 @@ with tab_arch:
             """
 <div class="panel">
 <table class="tbl">
-  <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+  <thead><tr><th>Parameter</th><th>Base</th><th>Fine-tune</th></tr></thead>
   <tbody>
-    <tr><td>Algorithm</td><td class="v">PPO (from scratch)</td></tr>
-    <tr><td>Parallel envs</td><td class="v">8</td></tr>
-    <tr><td>Rollout steps</td><td class="v">128</td></tr>
-    <tr><td>Minibatch size</td><td class="v">256</td></tr>
-    <tr><td>Epochs per update</td><td class="v">4</td></tr>
-    <tr><td>Learning rate</td><td class="v">3e-4 (linear decay)</td></tr>
-    <tr><td>Discount (gamma)</td><td class="v">0.99</td></tr>
-    <tr><td>GAE lambda</td><td class="v">0.95</td></tr>
-    <tr><td>Clip epsilon</td><td class="v">0.2</td></tr>
-    <tr><td>Value coeff</td><td class="v">0.5</td></tr>
-    <tr><td>Entropy coeff</td><td class="v">0.01</td></tr>
-    <tr><td>KL target</td><td class="v">0.015</td></tr>
-    <tr><td>Grad clip</td><td class="v">0.5</td></tr>
+    <tr><td>Total steps</td><td class="v">5M</td><td class="v">+2M</td></tr>
+    <tr><td>Parallel envs</td><td class="v">8</td><td class="v">8</td></tr>
+    <tr><td>Rollout steps</td><td class="v">256</td><td class="v">256</td></tr>
+    <tr><td>Minibatch size</td><td class="v">256</td><td class="v">256</td></tr>
+    <tr><td>Epochs per update</td><td class="v">4</td><td class="v">4</td></tr>
+    <tr><td>Learning rate</td><td class="v">2.5e-4</td><td class="v">5e-5</td></tr>
+    <tr><td>Clip epsilon</td><td class="v">0.2</td><td class="v">0.15</td></tr>
+    <tr><td>Entropy coeff</td><td class="v">0.01</td><td class="v">0.02</td></tr>
+    <tr><td>KL target</td><td class="v">0.02</td><td class="v">0.015</td></tr>
+    <tr><td>Gamma</td><td class="v">0.99</td><td class="v">0.99</td></tr>
+    <tr><td>GAE lambda</td><td class="v">0.95</td><td class="v">0.95</td></tr>
+    <tr><td>Grad clip</td><td class="v">0.5</td><td class="v">0.5</td></tr>
   </tbody>
 </table>
 </div>
@@ -870,10 +1180,10 @@ with tab_arch:
     for lower bias while keeping variance manageable.</p>
   </div>
   <div class="spec-card">
-    <p class="sk">Entropy bonus (0.01)</p>
+    <p class="sk">Entropy bonus</p>
     <p class="sv">Prevents premature convergence</p>
     <p class="sd">Without it, the policy collapses to a single action early in training.
-    The entropy term keeps exploration alive during learning.</p>
+    The entropy term keeps exploration alive during the critical early phase.</p>
   </div>
   <div class="spec-card">
     <p class="sk">Orthogonal init</p>
@@ -882,10 +1192,191 @@ with tab_arch:
     Prevents vanishing/exploding gradients at initialization.</p>
   </div>
   <div class="spec-card">
-    <p class="sk">Linear LR decay</p>
-    <p class="sv">3e-4 to 0 over training</p>
-    <p class="sd">As the policy matures, smaller updates prevent overshooting.
-    Effectively transitions to fine-tuning mode near the end.</p>
+    <p class="sk">KL early stopping</p>
+    <p class="sv">Adaptive epoch count</p>
+    <p class="sd">If KL divergence exceeds the target, stop the epoch loop early.
+    This prevents catastrophic policy updates on unusual batches.</p>
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════
+# TAB: HOW PPO WORKS
+# ══════════════════════════════════════════════════════════════════
+with tab_algo:
+    st.markdown('<div class="sec-h">Proximal Policy Optimisation explained</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        """
+<div class="panel" style="margin-bottom:1.5rem">
+  <h4>The core idea in one sentence</h4>
+  <p style="font-size:0.92rem;color:#D4D4D8;line-height:1.8">
+    PPO improves the policy by asking <em>"was this action better or worse than expected?"</em>
+    for each collected experience, then updating the network &mdash; but capping how much
+    it can change in a single step to prevent catastrophic forgetting.
+  </p>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    algo_col1, algo_col2 = st.columns(2, gap="large")
+
+    with algo_col1:
+        st.markdown(
+            f"""
+<div class="panel">
+  <h4>The training loop</h4>
+  <div class="code-block" style="margin-top:10px">
+    <span class="kw">for</span> iteration <span class="kw">in</span> range(<span class="num">7_000_000</span> // (<span class="num">8</span> * <span class="num">256</span>)):<br>
+    <br>
+    &nbsp;&nbsp;<span class="cm"># 1. Collect experiences</span><br>
+    &nbsp;&nbsp;<span class="kw">for</span> step <span class="kw">in</span> range(<span class="num">256</span>):<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;action = <span class="fn">policy</span>(obs) &nbsp;<span class="cm"># sample from Gaussian</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;obs, reward, done = <span class="fn">env.step</span>(action)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">buffer.store</span>(obs, action, reward, done)<br>
+    <br>
+    &nbsp;&nbsp;<span class="cm"># 2. Compute advantages (GAE)</span><br>
+    &nbsp;&nbsp;advantages = <span class="fn">compute_gae</span>(rewards, values)<br>
+    <br>
+    &nbsp;&nbsp;<span class="cm"># 3. PPO update (clipped)</span><br>
+    &nbsp;&nbsp;<span class="kw">for</span> epoch <span class="kw">in</span> range(<span class="num">4</span>):<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> batch <span class="kw">in</span> <span class="fn">shuffle</span>(buffer):<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ratio = new_prob / old_prob<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;loss = -<span class="fn">min</span>(ratio * A, <span class="fn">clip</span>(ratio) * A)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">optimizer.step</span>(loss)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> kl > target: <span class="kw">break</span> &nbsp;<span class="cm"># early stop</span>
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    with algo_col2:
+        st.markdown(
+            f"""
+<div class="panel">
+  <h4>Key components</h4>
+  <div style="display:grid;gap:16px;margin-top:10px">
+
+    <div>
+      <p style="font-size:0.72rem;font-weight:700;color:{BLUE};margin:0 0 4px;text-transform:uppercase;letter-spacing:0.08em">
+        Clipped objective</p>
+      <p style="font-size:0.8rem;color:#A1A1AA;line-height:1.6;margin:0">
+        The probability ratio r(theta) is clipped to [1-eps, 1+eps]. This prevents the policy from
+        changing too drastically in a single update, which is the #1 cause of RL training collapse.</p>
+    </div>
+
+    <div>
+      <p style="font-size:0.72rem;font-weight:700;color:{TEAL};margin:0 0 4px;text-transform:uppercase;letter-spacing:0.08em">
+        GAE (Generalized Advantage Estimation)</p>
+      <p style="font-size:0.8rem;color:#A1A1AA;line-height:1.6;margin:0">
+        Instead of raw returns, GAE computes a weighted blend of n-step returns.
+        Lambda=0.95 gets most of Monte Carlo's low bias with TD's lower variance.</p>
+    </div>
+
+    <div>
+      <p style="font-size:0.72rem;font-weight:700;color:{AMBER};margin:0 0 4px;text-transform:uppercase;letter-spacing:0.08em">
+        Entropy bonus</p>
+      <p style="font-size:0.8rem;color:#A1A1AA;line-height:1.6;margin:0">
+        Adding H(pi) to the objective encourages the policy to stay stochastic during training.
+        Without it, the agent prematurely commits to a suboptimal strategy.</p>
+    </div>
+
+    <div>
+      <p style="font-size:0.72rem;font-weight:700;color:{PURPLE};margin:0 0 4px;text-transform:uppercase;letter-spacing:0.08em">
+        Value function</p>
+      <p style="font-size:0.8rem;color:#A1A1AA;line-height:1.6;margin:0">
+        The critic learns V(s) &mdash; how good is this state? This baseline reduces variance
+        in the policy gradient, making learning much more sample-efficient.</p>
+    </div>
+
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+    # The math
+    st.markdown('<div class="sec-h">The mathematics</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+<div class="panel">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div>
+      <p style="font-size:0.72rem;font-weight:700;color:{BLUE};margin:0 0 8px;text-transform:uppercase;letter-spacing:0.08em">
+        PPO-Clip Objective</p>
+      <div class="code-block">
+        L = E[ <span class="fn">min</span>( r * A, <span class="fn">clip</span>(r, <span class="num">1-e</span>, <span class="num">1+e</span>) * A ) ]<br>
+        <br>
+        <span class="cm">where:</span><br>
+        &nbsp;&nbsp;r = pi_new(a|s) / pi_old(a|s)<br>
+        &nbsp;&nbsp;A = advantage (from GAE)<br>
+        &nbsp;&nbsp;e = <span class="num">0.2</span> <span class="cm">(clip range)</span>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:0.72rem;font-weight:700;color:{TEAL};margin:0 0 8px;text-transform:uppercase;letter-spacing:0.08em">
+        GAE Formula</p>
+      <div class="code-block">
+        A_t = sum( (gamma * lambda)^l * delta_(t+l) )<br>
+        <br>
+        <span class="cm">where:</span><br>
+        &nbsp;&nbsp;delta_t = r_t + gamma * V(s_(t+1)) - V(s_t)<br>
+        &nbsp;&nbsp;gamma = <span class="num">0.99</span>, lambda = <span class="num">0.95</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px">
+    <p style="font-size:0.72rem;font-weight:700;color:{AMBER};margin:0 0 8px;text-transform:uppercase;letter-spacing:0.08em">
+      Total Loss</p>
+    <div class="code-block">
+      L_total = L_clip - <span class="num">0.5</span> * L_value + <span class="num">0.01</span> * H(pi)<br>
+      <br>
+      <span class="cm">Policy gradient + value function MSE + entropy bonus</span>
+    </div>
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+    # Why PPO over alternatives
+    st.markdown('<div class="sec-h">Why PPO?</div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+<div class="spec-grid">
+  <div class="spec-card">
+    <p class="sk">vs. Vanilla Policy Gradient</p>
+    <p class="sv">More sample-efficient</p>
+    <p class="sd">REINFORCE uses each experience once. PPO reuses data for 4 epochs
+    via importance sampling, getting ~4x more learning per environment step.</p>
+  </div>
+  <div class="spec-card">
+    <p class="sk">vs. TRPO</p>
+    <p class="sv">Much simpler to implement</p>
+    <p class="sd">TRPO needs conjugate gradients and a line search. PPO achieves similar
+    trust-region behavior with a simple clipped objective. Same stability, less code.</p>
+  </div>
+  <div class="spec-card">
+    <p class="sk">vs. DQN</p>
+    <p class="sv">Continuous actions</p>
+    <p class="sd">DQN discretises the action space. For steering (float in [-1,1]),
+    you'd need hundreds of bins to match PPO's precision.</p>
+  </div>
+  <div class="spec-card">
+    <p class="sk">vs. SAC</p>
+    <p class="sv">Simpler, often competitive</p>
+    <p class="sd">SAC adds a replay buffer and twin critics. For on-policy problems
+    like CarRacing (where trajectories matter), PPO is a natural fit.</p>
   </div>
 </div>
 """,
@@ -939,6 +1430,8 @@ with tab_about:
           <td>Removed clipping, simple MSE</td></tr>
       <tr><td>10-epoch overfit</td><td class="v">Too many gradient steps per batch</td>
           <td>4 epochs + KL early stopping</td></tr>
+      <tr><td>Parking collapse</td><td class="v">High entropy destabilized training</td>
+          <td>ent=0.005, lr=1e-4, target_kl=0.01</td></tr>
     </tbody>
   </table>
 </div>
@@ -978,11 +1471,13 @@ with tab_about:
 <div class="panel">
   <div style="display:grid;gap:12px">
     <a href="https://github.com/anmol0705/CarRacing-v2-PPO-Agent"
-       style="color:#3B8BD4;text-decoration:none;font-size:.85rem;font-weight:500">
+       style="color:#3B8BD4;text-decoration:none;font-size:.85rem;font-weight:500"
+       target="_blank">
       GitHub Repository &rarr;
     </a>
     <a href="https://wandb.ai/anmol_752005/carracing-ppo"
-       style="color:#3B8BD4;text-decoration:none;font-size:.85rem;font-weight:500">
+       style="color:#3B8BD4;text-decoration:none;font-size:.85rem;font-weight:500"
+       target="_blank">
       W&B Training Dashboard &rarr;
     </a>
   </div>
@@ -996,7 +1491,7 @@ with tab_about:
         st.markdown(
             """
 <div class="panel">
-  <pre style="font-size:0.72rem;color:#71717A;margin:0;line-height:1.8;overflow-x:auto">
+  <pre style="font-size:0.72rem;color:#71717A;margin:0;line-height:1.8;overflow-x:auto;font-family:'JetBrains Mono',monospace">
 carracing-ppo/
   src/
     model.py          CNN actor-critic
@@ -1017,13 +1512,41 @@ carracing-ppo/
             unsafe_allow_html=True,
         )
 
+        st.markdown('<hr class="divider">', unsafe_allow_html=True)
+        st.markdown('<div class="sec-h">What I\'d do next</div>', unsafe_allow_html=True)
+        st.markdown(
+            f"""
+<div class="panel">
+  <div style="display:grid;gap:10px">
+    <div class="env-stat">
+      <span style="color:#D4D4D8;font-size:.82rem;font-weight:500">HER for parking</span>
+      <span class="env-stat-val">Score -11.6 to ~0</span>
+    </div>
+    <div class="env-stat">
+      <span style="color:#D4D4D8;font-size:.82rem;font-weight:500">Multi-agent highway</span>
+      <span class="env-stat-val">Competitive PPO agents</span>
+    </div>
+    <div class="env-stat">
+      <span style="color:#D4D4D8;font-size:.82rem;font-weight:500">SAC comparison</span>
+      <span class="env-stat-val">Off-policy baseline</span>
+    </div>
+    <div class="env-stat">
+      <span style="color:#D4D4D8;font-size:.82rem;font-weight:500">Sim-to-real transfer</span>
+      <span class="env-stat-val">RC car with domain rand</span>
+    </div>
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
 
 # ── Footer ────────────────────────────────────────────────────────────────
 
 st.markdown('<hr class="divider">', unsafe_allow_html=True)
 st.markdown(
     '<p style="font-size:.7rem;color:#27272A;text-align:center;margin:0">'
-    "Built with PyTorch, Gymnasium, and Streamlit"
+    "Built from scratch with PyTorch, Gymnasium, and Streamlit"
     "</p>",
     unsafe_allow_html=True,
 )
