@@ -15,7 +15,7 @@
 
 <br>
 
-[![Streamlit](https://img.shields.io/badge/Live_Demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://carracing-v2-ppo-agent.streamlit.app)
+[![Streamlit](https://img.shields.io/badge/Live_Demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://carracing-v2-agent.streamlit.app/)
 &nbsp;&nbsp;
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)]()
 &nbsp;&nbsp;
